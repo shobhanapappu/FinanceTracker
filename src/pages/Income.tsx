@@ -3,13 +3,15 @@ import { DollarSign, Filter, Download, Plus } from 'lucide-react';
 import { DashboardHeader } from '../components/dashboard/DashboardHeader';
 import { Footer } from '../components/Footer';
 import { AddIncomeModal } from '../components/dashboard/modals/AddIncomeModal';
-import { getIncome, getCurrentUser } from '../lib/supabase';
+import { Toast } from '../components/Toast';
+import { getIncome, getCurrentUser, exportToCSV } from '../lib/supabase';
 
 export const Income: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [income, setIncome] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDemoUser, setIsDemoUser] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const mockIncomeData = [
     {
@@ -88,6 +90,45 @@ export const Income: React.FC = () => {
     loadIncome();
   }, []);
 
+  const handleIncomeSuccess = () => {
+    setToast({ message: 'Income added successfully!', type: 'success' });
+    // Reload income data
+    const loadIncome = async () => {
+      try {
+        const { user } = await getCurrentUser();
+        if (user) {
+          const { data, error } = await getIncome(user.id);
+          if (!error && data) {
+            setIncome(data);
+          }
+        }
+      } catch (error) {
+        console.error('Error reloading income:', error);
+      }
+    };
+    loadIncome();
+  };
+
+  const handleExport = () => {
+    if (income.length === 0) {
+      setToast({ message: 'No data to export', type: 'error' });
+      return;
+    }
+
+    const exportData = income.map(item => ({
+      Amount: item.amount,
+      Source: item.source,
+      Date: item.date,
+      Category: item.category,
+      Notes: item.notes,
+      'Created At': new Date(item.created_at).toLocaleString()
+    }));
+
+    const today = new Date().toISOString().split('T')[0];
+    exportToCSV(exportData, `income_export_${today}.csv`);
+    setToast({ message: 'Income data exported successfully!', type: 'success' });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
@@ -135,7 +176,11 @@ export const Income: React.FC = () => {
                   <Filter className="w-4 h-4" />
                   Filter
                 </button>
-                <button className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-2">
+                <button 
+                  onClick={handleExport}
+                  disabled={income.length === 0}
+                  className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   <Download className="w-4 h-4" />
                   Export CSV
                 </button>
@@ -235,7 +280,21 @@ export const Income: React.FC = () => {
       </div>
 
       {/* Add Income Modal */}
-      {showModal && <AddIncomeModal onClose={() => setShowModal(false)} />}
+      {showModal && (
+        <AddIncomeModal 
+          onClose={() => setShowModal(false)} 
+          onSuccess={handleIncomeSuccess}
+        />
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </>
   );
 };
