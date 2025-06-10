@@ -10,7 +10,7 @@ interface AddBudgetModalProps {
 export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ onClose, onSuccess }) => {
   const [formData, setFormData] = useState({
     category: '',
-    limit: '',
+    budget_limit: '',
     start_date: new Date().toISOString().split('T')[0],
   });
   const [loading, setLoading] = useState(false);
@@ -49,7 +49,7 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ onClose, onSucce
       const { error: addError } = await addBudget({
         user_id: user.id,
         category: formData.category,
-        limit: parseFloat(formData.limit),
+        budget_limit: parseFloat(formData.budget_limit),
         start_date: formData.start_date,
       });
 
@@ -107,14 +107,14 @@ export const AddBudgetModal: React.FC<AddBudgetModalProps> = ({ onClose, onSucce
           </div>
 
           <div>
-            <label htmlFor="limit" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            <label htmlFor="budget_limit" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Monthly Limit *
             </label>
             <input
               type="number"
-              id="limit"
-              name="limit"
-              value={formData.limit}
+              id="budget_limit"
+              name="budget_limit"
+              value={formData.budget_limit}
               onChange={handleInputChange}
               step="0.01"
               min="0.01"

@@ -18,7 +18,7 @@ export const Budgets: React.FC = () => {
     {
       id: 1,
       category: 'Marketing',
-      limit: 500,
+      budget_limit: 500,
       spent: 350,
       progress: 70,
       color: 'bg-blue-500'
@@ -26,7 +26,7 @@ export const Budgets: React.FC = () => {
     {
       id: 2,
       category: 'Software',
-      limit: 300,
+      budget_limit: 300,
       spent: 200,
       progress: 67,
       color: 'bg-purple-500'
@@ -34,7 +34,7 @@ export const Budgets: React.FC = () => {
     {
       id: 3,
       category: 'Travel',
-      limit: 800,
+      budget_limit: 800,
       spent: 450,
       progress: 56,
       color: 'bg-green-500'
@@ -167,7 +167,7 @@ export const Budgets: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {budgets.map((budget) => {
                 const spent = calculateSpent(budget.category);
-                const progress = Math.round((spent / Number(budget.limit)) * 100);
+                const progress = Math.round((spent / Number(budget.budget_limit)) * 100);
                 
                 return (
                   <div key={budget.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -202,7 +202,7 @@ export const Budgets: React.FC = () => {
                       <div className="flex justify-between items-center">
                         <span className="text-sm text-gray-600 dark:text-gray-400">Limit</span>
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                          ${Number(budget.limit).toLocaleString()}
+                          ${Number(budget.budget_limit).toLocaleString()}
                         </span>
                       </div>
 
@@ -236,7 +236,7 @@ export const Budgets: React.FC = () => {
 
                       <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
                         <span className="text-xs text-gray-500 dark:text-gray-400">
-                          Remaining: ${Math.max(0, Number(budget.limit) - spent).toLocaleString()}
+                          Remaining: ${Math.max(0, Number(budget.budget_limit) - spent).toLocaleString()}
                         </span>
                       </div>
                     </div>

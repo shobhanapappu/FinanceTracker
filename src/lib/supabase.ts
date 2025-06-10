@@ -66,7 +66,7 @@ export interface Budget {
   id: string;
   user_id: string;
   category: string;
-  limit: number;
+  budget_limit: number;
   start_date: string;
   created_at: string;
   updated_at: string;
