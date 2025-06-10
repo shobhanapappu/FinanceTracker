@@ -3,13 +3,15 @@ import { TrendingUp, Plus, Filter, Download, Eye } from 'lucide-react';
 import { DashboardHeader } from '../components/dashboard/DashboardHeader';
 import { Footer } from '../components/Footer';
 import { AddInvestmentModal } from '../components/dashboard/modals/AddInvestmentModal';
-import { getInvestments, getCurrentUser } from '../lib/supabase';
+import { Toast } from '../components/Toast';
+import { getInvestments, getCurrentUser, exportToCSV } from '../lib/supabase';
 
 export const Investments: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [investments, setInvestments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDemoUser, setIsDemoUser] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const mockInvestmentData = [
     {
@@ -69,6 +71,45 @@ export const Investments: React.FC = () => {
 
     loadInvestments();
   }, []);
+
+  const handleInvestmentSuccess = () => {
+    setToast({ message: 'Investment added successfully!', type: 'success' });
+    // Reload investments data
+    const loadInvestments = async () => {
+      try {
+        const { user } = await getCurrentUser();
+        if (user) {
+          const { data, error } = await getInvestments(user.id);
+          if (!error && data) {
+            setInvestments(data);
+          }
+        }
+      } catch (error) {
+        console.error('Error reloading investments:', error);
+      }
+    };
+    loadInvestments();
+  };
+
+  const handleExport = () => {
+    if (investments.length === 0) {
+      setToast({ message: 'No data to export', type: 'error' });
+      return;
+    }
+
+    const exportData = investments.map(investment => ({
+      Type: investment.type,
+      Amount: investment.amount,
+      Date: investment.date,
+      Platform: investment.platform,
+      Notes: investment.notes,
+      'Created At': new Date(investment.created_at).toLocaleString()
+    }));
+
+    const today = new Date().toISOString().split('T')[0];
+    exportToCSV(exportData, `investments_export_${today}.csv`);
+    setToast({ message: 'Investments data exported successfully!', type: 'success' });
+  };
 
   const totalInvestments = investments.reduce((sum, investment) => sum + Number(investment.amount), 0);
 
@@ -137,7 +178,11 @@ export const Investments: React.FC = () => {
                   <Filter className="w-4 h-4" />
                   Filter
                 </button>
-                <button className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-2">
+                <button 
+                  onClick={handleExport}
+                  disabled={investments.length === 0}
+                  className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   <Download className="w-4 h-4" />
                   Export CSV
                 </button>
@@ -220,7 +265,13 @@ export const Investments: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <button className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors">
+                          <button 
+                            disabled={isDemoUser}
+                            className={`text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors ${
+                              isDemoUser ? 'cursor-not-allowed opacity-75' : ''
+                            }`}
+                            title={isDemoUser ? 'Sign up to view details' : ''}
+                          >
                             <Eye className="w-4 h-4" />
                           </button>
                         </td>
@@ -237,7 +288,21 @@ export const Investments: React.FC = () => {
       </div>
 
       {/* Add Investment Modal */}
-      {showModal && <AddInvestmentModal onClose={() => setShowModal(false)} />}
+      {showModal && (
+        <AddInvestmentModal 
+          onClose={() => setShowModal(false)} 
+          onSuccess={handleInvestmentSuccess}
+        />
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </>
   );
 };

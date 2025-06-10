@@ -1,15 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Target, Plus, Eye, Calendar } from 'lucide-react';
+import { Target, Plus, Eye, Calendar, Download } from 'lucide-react';
 import { DashboardHeader } from '../components/dashboard/DashboardHeader';
 import { Footer } from '../components/Footer';
 import { AddSavingsModal } from '../components/dashboard/modals/AddSavingsModal';
-import { getSavingsGoals, getCurrentUser } from '../lib/supabase';
+import { Toast } from '../components/Toast';
+import { getSavingsGoals, getCurrentUser, exportToCSV } from '../lib/supabase';
 
 export const Savings: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [savingsGoals, setSavingsGoals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDemoUser, setIsDemoUser] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const mockSavingsData = [
     {
@@ -69,6 +71,46 @@ export const Savings: React.FC = () => {
 
     loadSavingsGoals();
   }, []);
+
+  const handleSavingsSuccess = () => {
+    setToast({ message: 'Savings goal added successfully!', type: 'success' });
+    // Reload savings goals data
+    const loadSavingsGoals = async () => {
+      try {
+        const { user } = await getCurrentUser();
+        if (user) {
+          const { data, error } = await getSavingsGoals(user.id);
+          if (!error && data) {
+            setSavingsGoals(data);
+          }
+        }
+      } catch (error) {
+        console.error('Error reloading savings goals:', error);
+      }
+    };
+    loadSavingsGoals();
+  };
+
+  const handleExport = () => {
+    if (savingsGoals.length === 0) {
+      setToast({ message: 'No data to export', type: 'error' });
+      return;
+    }
+
+    const exportData = savingsGoals.map(goal => ({
+      'Goal Name': goal.goal_name,
+      'Target Amount': goal.target_amount,
+      'Current Amount': goal.current_amount,
+      'Progress': `${Math.round((Number(goal.current_amount) / Number(goal.target_amount)) * 100)}%`,
+      'Deadline': goal.deadline || 'No deadline',
+      'Notes': goal.notes,
+      'Created At': new Date(goal.created_at).toLocaleString()
+    }));
+
+    const today = new Date().toISOString().split('T')[0];
+    exportToCSV(exportData, `savings_goals_export_${today}.csv`);
+    setToast({ message: 'Savings goals data exported successfully!', type: 'success' });
+  };
 
   const totalSaved = savingsGoals.reduce((sum, goal) => sum + Number(goal.current_amount), 0);
   const totalTarget = savingsGoals.reduce((sum, goal) => sum + Number(goal.target_amount), 0);
@@ -141,17 +183,28 @@ export const Savings: React.FC = () => {
 
           {/* Action Bar */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
-            <button
-              onClick={() => setShowModal(true)}
-              disabled={isDemoUser}
-              className={`bg-gradient-to-r from-purple-500 to-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2 ${
-                isDemoUser ? 'cursor-not-allowed opacity-75' : ''
-              }`}
-              title={isDemoUser ? 'Sign up to add savings goals' : ''}
-            >
-              <Plus className="w-5 h-5" />
-              Add Savings Goal
-            </button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+              <button
+                onClick={() => setShowModal(true)}
+                disabled={isDemoUser}
+                className={`bg-gradient-to-r from-purple-500 to-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2 ${
+                  isDemoUser ? 'cursor-not-allowed opacity-75' : ''
+                }`}
+                title={isDemoUser ? 'Sign up to add savings goals' : ''}
+              >
+                <Plus className="w-5 h-5" />
+                Add Savings Goal
+              </button>
+
+              <button 
+                onClick={handleExport}
+                disabled={savingsGoals.length === 0}
+                className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download className="w-4 h-4" />
+                Export CSV
+              </button>
+            </div>
           </div>
 
           {/* Savings Goals Grid */}
@@ -180,7 +233,13 @@ export const Savings: React.FC = () => {
                           {goal.goal_name}
                         </h3>
                       </div>
-                      <button className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+                      <button 
+                        disabled={isDemoUser}
+                        className={`text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors ${
+                          isDemoUser ? 'cursor-not-allowed opacity-75' : ''
+                        }`}
+                        title={isDemoUser ? 'Sign up to view details' : ''}
+                      >
                         <Eye className="w-4 h-4" />
                       </button>
                     </div>
@@ -258,7 +317,21 @@ export const Savings: React.FC = () => {
       </div>
 
       {/* Add Savings Goal Modal */}
-      {showModal && <AddSavingsModal onClose={() => setShowModal(false)} />}
+      {showModal && (
+        <AddSavingsModal 
+          onClose={() => setShowModal(false)} 
+          onSuccess={handleSavingsSuccess}
+        />
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </>
   );
 };

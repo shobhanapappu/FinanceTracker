@@ -3,13 +3,15 @@ import { CreditCard, Filter, Download, Plus } from 'lucide-react';
 import { DashboardHeader } from '../components/dashboard/DashboardHeader';
 import { Footer } from '../components/Footer';
 import { AddExpenseModal } from '../components/dashboard/modals/AddExpenseModal';
-import { getExpenses, getCurrentUser } from '../lib/supabase';
+import { Toast } from '../components/Toast';
+import { getExpenses, getCurrentUser, exportToCSV } from '../lib/supabase';
 
 export const Expenses: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDemoUser, setIsDemoUser] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const mockExpenseData = [
     {
@@ -88,6 +90,45 @@ export const Expenses: React.FC = () => {
     loadExpenses();
   }, []);
 
+  const handleExpenseSuccess = () => {
+    setToast({ message: 'Expense added successfully!', type: 'success' });
+    // Reload expenses data
+    const loadExpenses = async () => {
+      try {
+        const { user } = await getCurrentUser();
+        if (user) {
+          const { data, error } = await getExpenses(user.id);
+          if (!error && data) {
+            setExpenses(data);
+          }
+        }
+      } catch (error) {
+        console.error('Error reloading expenses:', error);
+      }
+    };
+    loadExpenses();
+  };
+
+  const handleExport = () => {
+    if (expenses.length === 0) {
+      setToast({ message: 'No data to export', type: 'error' });
+      return;
+    }
+
+    const exportData = expenses.map(expense => ({
+      Amount: expense.amount,
+      Vendor: expense.vendor,
+      Date: expense.date,
+      Category: expense.category,
+      Notes: expense.notes,
+      'Created At': new Date(expense.created_at).toLocaleString()
+    }));
+
+    const today = new Date().toISOString().split('T')[0];
+    exportToCSV(exportData, `expenses_export_${today}.csv`);
+    setToast({ message: 'Expenses data exported successfully!', type: 'success' });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
@@ -135,7 +176,11 @@ export const Expenses: React.FC = () => {
                   <Filter className="w-4 h-4" />
                   Filter
                 </button>
-                <button className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-2">
+                <button 
+                  onClick={handleExport}
+                  disabled={expenses.length === 0}
+                  className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   <Download className="w-4 h-4" />
                   Export CSV
                 </button>
@@ -235,7 +280,21 @@ export const Expenses: React.FC = () => {
       </div>
 
       {/* Add Expense Modal */}
-      {showModal && <AddExpenseModal onClose={() => setShowModal(false)} />}
+      {showModal && (
+        <AddExpenseModal 
+          onClose={() => setShowModal(false)} 
+          onSuccess={handleExpenseSuccess}
+        />
+      )}
+
+      {/* Toast Notification */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </>
   );
 };

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Target, Plus, Eye } from 'lucide-react';
+import { Target, Plus, Eye, Download } from 'lucide-react';
 import { DashboardHeader } from '../components/dashboard/DashboardHeader';
 import { Footer } from '../components/Footer';
 import { AddBudgetModal } from '../components/dashboard/modals/AddBudgetModal';
 import { Toast } from '../components/Toast';
-import { getBudgets, getExpenses, getCurrentUser } from '../lib/supabase';
+import { getBudgets, getExpenses, getCurrentUser, exportToCSV } from '../lib/supabase';
 
 export const Budgets: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
@@ -112,6 +112,32 @@ export const Budgets: React.FC = () => {
     loadBudgets();
   };
 
+  const handleExport = () => {
+    if (budgets.length === 0) {
+      setToast({ message: 'No data to export', type: 'error' });
+      return;
+    }
+
+    const exportData = budgets.map(budget => {
+      const spent = calculateSpent(budget.category);
+      const progress = Math.round((spent / Number(budget.budget_limit)) * 100);
+      
+      return {
+        Category: budget.category,
+        'Budget Limit': budget.budget_limit,
+        'Amount Spent': spent,
+        'Progress (%)': progress,
+        'Remaining': Math.max(0, Number(budget.budget_limit) - spent),
+        'Start Date': budget.start_date,
+        'Created At': new Date(budget.created_at).toLocaleString()
+      };
+    });
+
+    const today = new Date().toISOString().split('T')[0];
+    exportToCSV(exportData, `budgets_export_${today}.csv`);
+    setToast({ message: 'Budgets data exported successfully!', type: 'success' });
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
@@ -141,17 +167,28 @@ export const Budgets: React.FC = () => {
 
           {/* Action Bar */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
-            <button
-              onClick={() => setShowModal(true)}
-              disabled={isDemoUser}
-              className={`bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2 ${
-                isDemoUser ? 'cursor-not-allowed opacity-75' : ''
-              }`}
-              title={isDemoUser ? 'Sign up to create budgets' : ''}
-            >
-              <Plus className="w-5 h-5" />
-              Create Budget
-            </button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+              <button
+                onClick={() => setShowModal(true)}
+                disabled={isDemoUser}
+                className={`bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2 ${
+                  isDemoUser ? 'cursor-not-allowed opacity-75' : ''
+                }`}
+                title={isDemoUser ? 'Sign up to create budgets' : ''}
+              >
+                <Plus className="w-5 h-5" />
+                Create Budget
+              </button>
+
+              <button 
+                onClick={handleExport}
+                disabled={budgets.length === 0}
+                className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Download className="w-4 h-4" />
+                Export CSV
+              </button>
+            </div>
           </div>
 
           {/* Budget Cards */}
