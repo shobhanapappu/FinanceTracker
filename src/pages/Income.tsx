@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Filter, Download, Plus } from 'lucide-react';
+import { DollarSign, Filter, Download, Plus, Trash2, PieChart } from 'lucide-react';
 import { DashboardHeader } from '../components/dashboard/DashboardHeader';
 import { Footer } from '../components/Footer';
 import { AddIncomeModal } from '../components/dashboard/modals/AddIncomeModal';
+import { DeleteConfirmModal } from '../components/dashboard/DeleteConfirmModal';
+import { PieChart as PieChartComponent } from '../components/dashboard/PieChart';
 import { Toast } from '../components/Toast';
-import { getIncome, getCurrentUser, exportToCSV } from '../lib/supabase';
+import { getIncome, getCurrentUser, exportToCSV, deleteIncome } from '../lib/supabase';
 
 export const Income: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
   const [income, setIncome] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [isDemoUser, setIsDemoUser] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -109,6 +114,27 @@ export const Income: React.FC = () => {
     loadIncome();
   };
 
+  const handleDelete = async () => {
+    if (!selectedItem || isDemoUser) return;
+
+    setDeleteLoading(true);
+    try {
+      const { error } = await deleteIncome(selectedItem.id);
+      if (error) {
+        setToast({ message: 'Failed to delete income', type: 'error' });
+      } else {
+        setToast({ message: 'Income deleted successfully!', type: 'success' });
+        setIncome(prev => prev.filter(item => item.id !== selectedItem.id));
+        setShowDeleteModal(false);
+        setSelectedItem(null);
+      }
+    } catch (error) {
+      setToast({ message: 'Failed to delete income', type: 'error' });
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   const handleExport = () => {
     if (income.length === 0) {
       setToast({ message: 'No data to export', type: 'error' });
@@ -128,6 +154,29 @@ export const Income: React.FC = () => {
     exportToCSV(exportData, `income_export_${today}.csv`);
     setToast({ message: 'Income data exported successfully!', type: 'success' });
   };
+
+  // Prepare pie chart data
+  const pieChartData = React.useMemo(() => {
+    const categoryTotals = income.reduce((acc, item) => {
+      acc[item.category] = (acc[item.category] || 0) + Number(item.amount);
+      return acc;
+    }, {} as Record<string, number>);
+
+    const colors = [
+      '#10B981', // green
+      '#3B82F6', // blue
+      '#8B5CF6', // purple
+      '#F59E0B', // amber
+      '#EF4444', // red
+      '#06B6D4', // cyan
+    ];
+
+    return Object.entries(categoryTotals).map(([category, amount], index) => ({
+      label: category,
+      value: amount,
+      color: colors[index % colors.length]
+    }));
+  }, [income]);
 
   if (loading) {
     return (
@@ -156,13 +205,65 @@ export const Income: React.FC = () => {
             </p>
           </div>
 
+          {/* Charts Section */}
+          {income.length > 0 && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              {/* Income by Category Pie Chart */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-xl">
+                    <PieChart className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Income by Category
+                  </h3>
+                </div>
+                <div className="flex justify-center">
+                  <PieChartComponent data={pieChartData} size={250} />
+                </div>
+              </div>
+
+              {/* Summary Stats */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl">
+                    <DollarSign className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Income Summary
+                  </h3>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Income</span>
+                    <span className="text-2xl font-bold text-green-600 dark:text-green-400">
+                      ${income.reduce((sum, item) => sum + Number(item.amount), 0).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Average per Entry</span>
+                    <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                      ${Math.round(income.reduce((sum, item) => sum + Number(item.amount), 0) / income.length).toLocaleString()}
+                    </span>
+                  </div>
+                  <div className="flex justify-between items-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl">
+                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Entries</span>
+                    <span className="text-xl font-bold text-purple-600 dark:text-purple-400">
+                      {income.length}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Action Bar */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
             <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
               <button
                 onClick={() => setShowModal(true)}
                 disabled={isDemoUser}
-                className={`bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-3 rounded-lg font-medium hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2 ${
+                className={`bg-gradient-to-r from-green-500 to-green-600 text-white px-6 py-3 rounded-xl font-medium hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2 ${
                   isDemoUser ? 'cursor-not-allowed opacity-75' : ''
                 }`}
                 title={isDemoUser ? 'Sign up to add income' : ''}
@@ -172,14 +273,14 @@ export const Income: React.FC = () => {
               </button>
 
               <div className="flex gap-3">
-                <button className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-2">
+                <button className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-2">
                   <Filter className="w-4 h-4" />
                   Filter
                 </button>
                 <button 
                   onClick={handleExport}
                   disabled={income.length === 0}
-                  className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Download className="w-4 h-4" />
                   Export CSV
@@ -189,10 +290,10 @@ export const Income: React.FC = () => {
           </div>
 
           {/* Income Table */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-lg">
+                <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-xl">
                   <DollarSign className="w-5 h-5 text-white" />
                 </div>
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -230,7 +331,7 @@ export const Income: React.FC = () => {
                         Notes
                       </th>
                       <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                        Created At
+                        Actions
                       </th>
                     </tr>
                   </thead>
@@ -263,9 +364,19 @@ export const Income: React.FC = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
-                          <span className="text-sm text-gray-500 dark:text-gray-400">
-                            {new Date(incomeItem.created_at).toLocaleString()}
-                          </span>
+                          <button
+                            onClick={() => {
+                              setSelectedItem(incomeItem);
+                              setShowDeleteModal(true);
+                            }}
+                            disabled={isDemoUser}
+                            className={`text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 ${
+                              isDemoUser ? 'cursor-not-allowed opacity-50' : ''
+                            }`}
+                            title={isDemoUser ? 'Sign up to delete entries' : 'Delete income'}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -286,6 +397,20 @@ export const Income: React.FC = () => {
           onSuccess={handleIncomeSuccess}
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setSelectedItem(null);
+        }}
+        onConfirm={handleDelete}
+        title="Delete Income Entry"
+        message="Are you sure you want to delete this income entry? This action cannot be undone."
+        itemName={selectedItem?.source}
+        loading={deleteLoading}
+      />
 
       {/* Toast Notification */}
       {toast && (
