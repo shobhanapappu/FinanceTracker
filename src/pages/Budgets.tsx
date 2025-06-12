@@ -1,16 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Target, Plus, Eye, Download } from 'lucide-react';
+import { Target, Plus, Download, Trash2, PieChart } from 'lucide-react';
 import { DashboardHeader } from '../components/dashboard/DashboardHeader';
 import { Footer } from '../components/Footer';
 import { AddBudgetModal } from '../components/dashboard/modals/AddBudgetModal';
+import { DeleteConfirmModal } from '../components/dashboard/DeleteConfirmModal';
+import { PieChart as PieChartComponent } from '../components/dashboard/PieChart';
 import { Toast } from '../components/Toast';
-import { getBudgets, getExpenses, getCurrentUser, exportToCSV } from '../lib/supabase';
+import { getBudgets, getExpenses, getCurrentUser, exportToCSV, deleteBudget } from '../lib/supabase';
 
 export const Budgets: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
   const [budgets, setBudgets] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [isDemoUser, setIsDemoUser] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -112,6 +117,27 @@ export const Budgets: React.FC = () => {
     loadBudgets();
   };
 
+  const handleDelete = async () => {
+    if (!selectedItem || isDemoUser) return;
+
+    setDeleteLoading(true);
+    try {
+      const { error } = await deleteBudget(selectedItem.id);
+      if (error) {
+        setToast({ message: 'Failed to delete budget', type: 'error' });
+      } else {
+        setToast({ message: 'Budget deleted successfully!', type: 'success' });
+        setBudgets(prev => prev.filter(item => item.id !== selectedItem.id));
+        setShowDeleteModal(false);
+        setSelectedItem(null);
+      }
+    } catch (error) {
+      setToast({ message: 'Failed to delete budget', type: 'error' });
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   const handleExport = () => {
     if (budgets.length === 0) {
       setToast({ message: 'No data to export', type: 'error' });
@@ -137,6 +163,27 @@ export const Budgets: React.FC = () => {
     exportToCSV(exportData, `budgets_export_${today}.csv`);
     setToast({ message: 'Budgets data exported successfully!', type: 'success' });
   };
+
+  // Prepare pie chart data
+  const pieChartData = React.useMemo(() => {
+    const colors = [
+      '#3B82F6', // blue
+      '#8B5CF6', // purple
+      '#10B981', // green
+      '#F59E0B', // amber
+      '#EF4444', // red
+      '#06B6D4', // cyan
+    ];
+
+    return budgets.map((budget, index) => {
+      const spent = calculateSpent(budget.category);
+      return {
+        label: budget.category,
+        value: spent,
+        color: colors[index % colors.length]
+      };
+    });
+  }, [budgets]);
 
   if (loading) {
     return (
@@ -164,6 +211,75 @@ export const Budgets: React.FC = () => {
               Set and track your spending limits by category
             </p>
           </div>
+
+          {/* Charts Section */}
+          {budgets.length > 0 && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              {/* Budget Distribution Pie Chart */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl">
+                    <PieChart className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Budget Spending Distribution
+                  </h3>
+                </div>
+                <div className="flex justify-center">
+                  <PieChartComponent data={pieChartData} size={250} />
+                </div>
+              </div>
+
+              {/* Budget Progress Chart */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-xl">
+                    <Target className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Budget Progress
+                  </h3>
+                </div>
+                <div className="space-y-4">
+                  {budgets.map((budget, index) => {
+                    const spent = calculateSpent(budget.category);
+                    const progress = Math.round((spent / Number(budget.budget_limit)) * 100);
+                    
+                    return (
+                      <div key={index} className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            {budget.category}
+                          </span>
+                          <span className={`text-sm font-bold ${
+                            progress > 80 ? 'text-red-600 dark:text-red-400' : 
+                            progress > 60 ? 'text-yellow-600 dark:text-yellow-400' : 
+                            'text-green-600 dark:text-green-400'
+                          }`}>
+                            {progress}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-lg h-3 overflow-hidden">
+                          <div
+                            className={`h-full rounded-lg transition-all duration-1000 ease-out ${
+                              progress > 80 ? 'bg-gradient-to-r from-red-500 to-red-600' : 
+                              progress > 60 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' : 
+                              'bg-gradient-to-r from-green-500 to-green-600'
+                            }`}
+                            style={{ width: `${Math.min(progress, 100)}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                          <span>${spent.toLocaleString()} spent</span>
+                          <span>${Number(budget.budget_limit).toLocaleString()} limit</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Action Bar */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
@@ -218,13 +334,17 @@ export const Budgets: React.FC = () => {
                         </h3>
                       </div>
                       <button
+                        onClick={() => {
+                          setSelectedItem(budget);
+                          setShowDeleteModal(true);
+                        }}
                         disabled={isDemoUser}
-                        className={`p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors ${
-                          isDemoUser ? 'cursor-not-allowed opacity-75' : ''
+                        className={`text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 ${
+                          isDemoUser ? 'cursor-not-allowed opacity-50' : ''
                         }`}
-                        title={isDemoUser ? 'Sign up to view details' : ''}
+                        title={isDemoUser ? 'Sign up to delete budgets' : 'Delete budget'}
                       >
-                        <Eye className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
 
@@ -302,6 +422,20 @@ export const Budgets: React.FC = () => {
           onSuccess={handleBudgetSuccess}
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setSelectedItem(null);
+        }}
+        onConfirm={handleDelete}
+        title="Delete Budget"
+        message="Are you sure you want to delete this budget? This action cannot be undone."
+        itemName={selectedItem?.category}
+        loading={deleteLoading}
+      />
 
       {/* Toast Notification */}
       {toast && (

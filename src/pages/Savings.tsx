@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { Target, Plus, Eye, Calendar, Download } from 'lucide-react';
+import { Target, Plus, Calendar, Download, Trash2, PieChart, BarChart3 } from 'lucide-react';
 import { DashboardHeader } from '../components/dashboard/DashboardHeader';
 import { Footer } from '../components/Footer';
 import { AddSavingsModal } from '../components/dashboard/modals/AddSavingsModal';
+import { DeleteConfirmModal } from '../components/dashboard/DeleteConfirmModal';
+import { PieChart as PieChartComponent } from '../components/dashboard/PieChart';
 import { Toast } from '../components/Toast';
-import { getSavingsGoals, getCurrentUser, exportToCSV } from '../lib/supabase';
+import { getSavingsGoals, getCurrentUser, exportToCSV, deleteSavingsGoal } from '../lib/supabase';
 
 export const Savings: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
   const [savingsGoals, setSavingsGoals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [isDemoUser, setIsDemoUser] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -91,6 +96,27 @@ export const Savings: React.FC = () => {
     loadSavingsGoals();
   };
 
+  const handleDelete = async () => {
+    if (!selectedItem || isDemoUser) return;
+
+    setDeleteLoading(true);
+    try {
+      const { error } = await deleteSavingsGoal(selectedItem.id);
+      if (error) {
+        setToast({ message: 'Failed to delete savings goal', type: 'error' });
+      } else {
+        setToast({ message: 'Savings goal deleted successfully!', type: 'success' });
+        setSavingsGoals(prev => prev.filter(item => item.id !== selectedItem.id));
+        setShowDeleteModal(false);
+        setSelectedItem(null);
+      }
+    } catch (error) {
+      setToast({ message: 'Failed to delete savings goal', type: 'error' });
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   const handleExport = () => {
     if (savingsGoals.length === 0) {
       setToast({ message: 'No data to export', type: 'error' });
@@ -114,6 +140,24 @@ export const Savings: React.FC = () => {
 
   const totalSaved = savingsGoals.reduce((sum, goal) => sum + Number(goal.current_amount), 0);
   const totalTarget = savingsGoals.reduce((sum, goal) => sum + Number(goal.target_amount), 0);
+
+  // Prepare pie chart data
+  const pieChartData = React.useMemo(() => {
+    const colors = [
+      '#10B981', // green
+      '#3B82F6', // blue
+      '#8B5CF6', // purple
+      '#F59E0B', // amber
+      '#EF4444', // red
+      '#06B6D4', // cyan
+    ];
+
+    return savingsGoals.map((goal, index) => ({
+      label: goal.goal_name,
+      value: Number(goal.current_amount),
+      color: colors[index % colors.length]
+    }));
+  }, [savingsGoals]);
 
   if (loading) {
     return (
@@ -181,6 +225,74 @@ export const Savings: React.FC = () => {
             </div>
           </div>
 
+          {/* Charts Section */}
+          {savingsGoals.length > 0 && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              {/* Savings Distribution Pie Chart */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl">
+                    <PieChart className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Savings Distribution
+                  </h3>
+                </div>
+                <div className="flex justify-center">
+                  <PieChartComponent data={pieChartData} size={250} />
+                </div>
+              </div>
+
+              {/* Progress Chart */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-xl">
+                    <BarChart3 className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Goal Progress
+                  </h3>
+                </div>
+                <div className="space-y-4">
+                  {savingsGoals.map((goal, index) => {
+                    const progress = Math.round((Number(goal.current_amount) / Number(goal.target_amount)) * 100);
+                    
+                    return (
+                      <div key={index} className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            {goal.goal_name}
+                          </span>
+                          <span className={`text-sm font-bold ${
+                            progress >= 100 ? 'text-green-600 dark:text-green-400' : 
+                            progress >= 75 ? 'text-blue-600 dark:text-blue-400' : 
+                            'text-purple-600 dark:text-purple-400'
+                          }`}>
+                            {progress}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-lg h-3 overflow-hidden">
+                          <div
+                            className={`h-full rounded-lg transition-all duration-1000 ease-out ${
+                              progress >= 100 ? 'bg-gradient-to-r from-green-500 to-green-600' : 
+                              progress >= 75 ? 'bg-gradient-to-r from-blue-500 to-blue-600' : 
+                              'bg-gradient-to-r from-purple-500 to-purple-600'
+                            }`}
+                            style={{ width: `${Math.min(progress, 100)}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                          <span>${Number(goal.current_amount).toLocaleString()} saved</span>
+                          <span>${Number(goal.target_amount).toLocaleString()} target</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Action Bar */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
             <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
@@ -234,13 +346,17 @@ export const Savings: React.FC = () => {
                         </h3>
                       </div>
                       <button 
+                        onClick={() => {
+                          setSelectedItem(goal);
+                          setShowDeleteModal(true);
+                        }}
                         disabled={isDemoUser}
-                        className={`text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors ${
-                          isDemoUser ? 'cursor-not-allowed opacity-75' : ''
+                        className={`text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 ${
+                          isDemoUser ? 'cursor-not-allowed opacity-50' : ''
                         }`}
-                        title={isDemoUser ? 'Sign up to view details' : ''}
+                        title={isDemoUser ? 'Sign up to delete goals' : 'Delete savings goal'}
                       >
-                        <Eye className="w-4 h-4" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
 
@@ -323,6 +439,20 @@ export const Savings: React.FC = () => {
           onSuccess={handleSavingsSuccess}
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setSelectedItem(null);
+        }}
+        onConfirm={handleDelete}
+        title="Delete Savings Goal"
+        message="Are you sure you want to delete this savings goal? This action cannot be undone."
+        itemName={selectedItem?.goal_name}
+        loading={deleteLoading}
+      />
 
       {/* Toast Notification */}
       {toast && (

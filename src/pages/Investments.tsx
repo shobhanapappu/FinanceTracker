@@ -1,15 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, Plus, Filter, Download, Eye } from 'lucide-react';
+import { TrendingUp, Plus, Filter, Download, Trash2, PieChart, BarChart3 } from 'lucide-react';
 import { DashboardHeader } from '../components/dashboard/DashboardHeader';
 import { Footer } from '../components/Footer';
 import { AddInvestmentModal } from '../components/dashboard/modals/AddInvestmentModal';
+import { DeleteConfirmModal } from '../components/dashboard/DeleteConfirmModal';
+import { PieChart as PieChartComponent } from '../components/dashboard/PieChart';
 import { Toast } from '../components/Toast';
-import { getInvestments, getCurrentUser, exportToCSV } from '../lib/supabase';
+import { getInvestments, getCurrentUser, exportToCSV, deleteInvestment } from '../lib/supabase';
 
 export const Investments: React.FC = () => {
   const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<any>(null);
   const [investments, setInvestments] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [isDemoUser, setIsDemoUser] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -91,6 +96,27 @@ export const Investments: React.FC = () => {
     loadInvestments();
   };
 
+  const handleDelete = async () => {
+    if (!selectedItem || isDemoUser) return;
+
+    setDeleteLoading(true);
+    try {
+      const { error } = await deleteInvestment(selectedItem.id);
+      if (error) {
+        setToast({ message: 'Failed to delete investment', type: 'error' });
+      } else {
+        setToast({ message: 'Investment deleted successfully!', type: 'success' });
+        setInvestments(prev => prev.filter(item => item.id !== selectedItem.id));
+        setShowDeleteModal(false);
+        setSelectedItem(null);
+      }
+    } catch (error) {
+      setToast({ message: 'Failed to delete investment', type: 'error' });
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   const handleExport = () => {
     if (investments.length === 0) {
       setToast({ message: 'No data to export', type: 'error' });
@@ -112,6 +138,42 @@ export const Investments: React.FC = () => {
   };
 
   const totalInvestments = investments.reduce((sum, investment) => sum + Number(investment.amount), 0);
+
+  // Prepare pie chart data
+  const pieChartData = React.useMemo(() => {
+    const typeTotals = investments.reduce((acc, item) => {
+      acc[item.type] = (acc[item.type] || 0) + Number(item.amount);
+      return acc;
+    }, {} as Record<string, number>);
+
+    const colors = [
+      '#3B82F6', // blue
+      '#10B981', // green
+      '#8B5CF6', // purple
+      '#F59E0B', // amber
+      '#EF4444', // red
+      '#06B6D4', // cyan
+    ];
+
+    return Object.entries(typeTotals).map(([type, amount], index) => ({
+      label: type,
+      value: amount,
+      color: colors[index % colors.length]
+    }));
+  }, [investments]);
+
+  // Prepare platform data
+  const platformData = React.useMemo(() => {
+    const platformTotals = investments.reduce((acc, item) => {
+      acc[item.platform] = (acc[item.platform] || 0) + Number(item.amount);
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(platformTotals).map(([platform, amount]) => ({
+      platform,
+      amount
+    }));
+  }, [investments]);
 
   if (loading) {
     return (
@@ -157,6 +219,73 @@ export const Investments: React.FC = () => {
               Total Investment Value
             </p>
           </div>
+
+          {/* Charts Section */}
+          {investments.length > 0 && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              {/* Investment Types Pie Chart */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl">
+                    <PieChart className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Investment Types
+                  </h3>
+                </div>
+                <div className="flex justify-center">
+                  <PieChartComponent data={pieChartData} size={250} />
+                </div>
+              </div>
+
+              {/* Platform Distribution */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-xl">
+                    <BarChart3 className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Platform Distribution
+                  </h3>
+                </div>
+                <div className="space-y-4">
+                  {platformData.map((platform, index) => {
+                    const percentage = Math.round((platform.amount / totalInvestments) * 100);
+                    const colors = [
+                      'from-blue-500 to-blue-600',
+                      'from-green-500 to-green-600',
+                      'from-purple-500 to-purple-600',
+                      'from-orange-500 to-orange-600'
+                    ];
+                    
+                    return (
+                      <div key={index} className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            {platform.platform}
+                          </span>
+                          <div className="flex gap-2 text-sm">
+                            <span className="text-gray-600 dark:text-gray-400">
+                              {percentage}%
+                            </span>
+                            <span className="font-semibold text-gray-900 dark:text-white">
+                              ${platform.amount.toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-lg h-3 overflow-hidden">
+                          <div
+                            className={`h-full bg-gradient-to-r ${colors[index % colors.length]} rounded-lg transition-all duration-1000 ease-out`}
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Action Bar */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
@@ -266,13 +395,17 @@ export const Investments: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <button 
+                            onClick={() => {
+                              setSelectedItem(investment);
+                              setShowDeleteModal(true);
+                            }}
                             disabled={isDemoUser}
-                            className={`text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors ${
-                              isDemoUser ? 'cursor-not-allowed opacity-75' : ''
+                            className={`text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 ${
+                              isDemoUser ? 'cursor-not-allowed opacity-50' : ''
                             }`}
-                            title={isDemoUser ? 'Sign up to view details' : ''}
+                            title={isDemoUser ? 'Sign up to delete investments' : 'Delete investment'}
                           >
-                            <Eye className="w-4 h-4" />
+                            <Trash2 className="w-4 h-4" />
                           </button>
                         </td>
                       </tr>
@@ -294,6 +427,20 @@ export const Investments: React.FC = () => {
           onSuccess={handleInvestmentSuccess}
         />
       )}
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmModal
+        isOpen={showDeleteModal}
+        onClose={() => {
+          setShowDeleteModal(false);
+          setSelectedItem(null);
+        }}
+        onConfirm={handleDelete}
+        title="Delete Investment"
+        message="Are you sure you want to delete this investment record? This action cannot be undone."
+        itemName={`${selectedItem?.type} - ${selectedItem?.platform}`}
+        loading={deleteLoading}
+      />
 
       {/* Toast Notification */}
       {toast && (
