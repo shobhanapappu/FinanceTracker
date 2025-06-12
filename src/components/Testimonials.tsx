@@ -52,10 +52,13 @@ export const Testimonials: React.FC = () => {
   }, []);
 
   return (
-    <section className="py-20 px-8 bg-gray-50 dark:bg-gray-800" ref={testimonialsRef}>
+    <section className="py-20 px-8 bg-gradient-to-b from-dark-900 to-dark-800" ref={testimonialsRef}>
       <div className="max-w-6xl mx-auto">
-        <h2 className="text-4xl font-semibold text-center text-gray-900 dark:text-white mb-16">
-          Trusted by Thousands of Professionals
+        <h2 className="text-4xl md:text-5xl font-bold text-center text-white mb-16">
+          Trusted by Thousands of{' '}
+          <span className="bg-gradient-to-r from-primary-400 to-teal-400 bg-clip-text text-transparent">
+            Professionals
+          </span>
         </h2>
         
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -63,7 +66,7 @@ export const Testimonials: React.FC = () => {
             <div
               key={index}
               data-index={index}
-              className={`testimonial-card bg-white dark:bg-gray-900 p-8 rounded-lg shadow-lg transition-all duration-700 ${
+              className={`testimonial-card bg-card-gradient backdrop-blur-sm p-8 rounded-2xl shadow-2xl border border-teal-800/30 transition-all duration-700 hover:border-primary-500/50 hover:shadow-primary-500/10 ${
                 visibleTestimonials[index]
                   ? 'opacity-100 translate-y-0'
                   : 'opacity-0 translate-y-8'
@@ -71,17 +74,17 @@ export const Testimonials: React.FC = () => {
             >
               <div className="flex mb-4">
                 {[...Array(testimonial.rating)].map((_, i) => (
-                  <Star key={i} className="w-5 h-5 text-yellow-400 fill-current" />
+                  <Star key={i} className="w-5 h-5 text-primary-400 fill-current" />
                 ))}
               </div>
-              <p className="text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
+              <p className="text-gray-300 mb-6 leading-relaxed">
                 "{testimonial.content}"
               </p>
-              <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
-                <p className="font-bold text-gray-900 dark:text-white">
+              <div className="border-t border-teal-700/50 pt-4">
+                <p className="font-bold text-white">
                   {testimonial.name}
                 </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
+                <p className="text-sm text-gray-400">
                   {testimonial.role}
                 </p>
               </div>

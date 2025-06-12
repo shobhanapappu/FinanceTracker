@@ -68,26 +68,29 @@ export const SignUpForm: React.FC = () => {
   };
 
   return (
-    <section id="signup-form" className="py-20 px-8 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-900">
+    <section id="signup-form" className="py-20 px-8 bg-gradient-to-b from-dark-800 to-dark-900">
       <div className="max-w-md mx-auto">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-8">
-          <h2 className="text-3xl font-semibold text-center text-gray-900 dark:text-white mb-8">
-            Join Thousands of Smart Users
+        <div className="bg-card-gradient backdrop-blur-sm rounded-2xl shadow-2xl p-8 border border-teal-800/30">
+          <h2 className="text-3xl font-bold text-center text-white mb-8">
+            Join Thousands of{' '}
+            <span className="bg-gradient-to-r from-primary-400 to-teal-400 bg-clip-text text-transparent">
+              Smart Users
+            </span>
           </h2>
           
           {/* Progress Indicator */}
           <div className="mb-8">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <span className="text-sm font-medium text-gray-300">
                 Step {currentStep}/3: {currentStep === 1 ? 'Personal Info' : currentStep === 2 ? 'Account Details' : 'User Type'}
               </span>
-              <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+              <span className="text-sm font-bold text-primary-400">
                 {Math.round((currentStep / 3) * 100)}%
               </span>
             </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+            <div className="w-full bg-dark-700 rounded-full h-2">
               <div
-                className="bg-gradient-to-r from-blue-500 to-teal-500 h-2 rounded-full transition-all duration-300"
+                className="bg-gradient-to-r from-primary-500 to-teal-500 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${(currentStep / 3) * 100}%` }}
               />
             </div>
@@ -97,7 +100,7 @@ export const SignUpForm: React.FC = () => {
             {currentStep === 1 && (
               <div className="space-y-6">
                 <div>
-                  <label htmlFor="name\" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label htmlFor="name" className="block text-sm font-medium text-gray-300 mb-2">
                     Full Name
                   </label>
                   <div className="relative">
@@ -108,7 +111,7 @@ export const SignUpForm: React.FC = () => {
                       name="name"
                       value={formData.name}
                       onChange={handleInputChange}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      className="w-full pl-10 pr-4 py-3 border border-teal-700/50 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-dark-800/50 text-white placeholder-gray-400"
                       placeholder="Enter your full name"
                       required
                     />
@@ -118,7 +121,7 @@ export const SignUpForm: React.FC = () => {
                   type="button"
                   onClick={handleNextStep}
                   disabled={!formData.name.trim()}
-                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="w-full bg-gradient-to-r from-primary-500 to-teal-500 text-white py-3 rounded-lg font-bold hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-lg"
                 >
                   Next Step
                 </button>
@@ -128,7 +131,7 @@ export const SignUpForm: React.FC = () => {
             {currentStep === 2 && (
               <div className="space-y-6">
                 <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label htmlFor="email" className="block text-sm font-medium text-gray-300 mb-2">
                     Email Address
                   </label>
                   <div className="relative">
@@ -139,14 +142,14 @@ export const SignUpForm: React.FC = () => {
                       name="email"
                       value={formData.email}
                       onChange={handleInputChange}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      className="w-full pl-10 pr-4 py-3 border border-teal-700/50 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-dark-800/50 text-white placeholder-gray-400"
                       placeholder="Enter your email"
                       required
                     />
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label htmlFor="password" className="block text-sm font-medium text-gray-300 mb-2">
                     Password
                   </label>
                   <div className="relative">
@@ -157,7 +160,7 @@ export const SignUpForm: React.FC = () => {
                       name="password"
                       value={formData.password}
                       onChange={handleInputChange}
-                      className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                      className="w-full pl-10 pr-4 py-3 border border-teal-700/50 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-dark-800/50 text-white placeholder-gray-400"
                       placeholder="Create a password"
                       minLength={6}
                       required
@@ -168,7 +171,7 @@ export const SignUpForm: React.FC = () => {
                   <button
                     type="button"
                     onClick={handlePrevStep}
-                    className="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 py-3 rounded-lg font-bold hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+                    className="flex-1 bg-dark-700 text-gray-300 py-3 rounded-lg font-bold hover:bg-dark-600 transition-colors"
                   >
                     Back
                   </button>
@@ -176,7 +179,7 @@ export const SignUpForm: React.FC = () => {
                     type="button"
                     onClick={handleNextStep}
                     disabled={!formData.email.trim() || !formData.password.trim()}
-                    className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-bold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    className="flex-1 bg-gradient-to-r from-primary-500 to-teal-500 text-white py-3 rounded-lg font-bold hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-lg"
                   >
                     Next Step
                   </button>
@@ -187,7 +190,7 @@ export const SignUpForm: React.FC = () => {
             {currentStep === 3 && (
               <div className="space-y-6">
                 <div>
-                  <label htmlFor="userType" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <label htmlFor="userType" className="block text-sm font-medium text-gray-300 mb-2">
                     I am a...
                   </label>
                   <div className="relative">
@@ -196,7 +199,7 @@ export const SignUpForm: React.FC = () => {
                       name="userType"
                       value={formData.userType}
                       onChange={handleInputChange}
-                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white appearance-none"
+                      className="w-full px-4 py-3 border border-teal-700/50 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent bg-dark-800/50 text-white appearance-none"
                       required
                     >
                       <option value="freelancer">Freelancer</option>
@@ -209,14 +212,14 @@ export const SignUpForm: React.FC = () => {
                   <button
                     type="button"
                     onClick={handlePrevStep}
-                    className="flex-1 bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300 py-3 rounded-lg font-bold hover:bg-gray-400 dark:hover:bg-gray-500 transition-colors"
+                    className="flex-1 bg-dark-700 text-gray-300 py-3 rounded-lg font-bold hover:bg-dark-600 transition-colors"
                   >
                     Back
                   </button>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 text-white py-3 rounded-lg font-bold hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="flex-1 bg-gradient-to-r from-secondary-500 to-primary-500 text-white py-3 rounded-lg font-bold hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-lg"
                   >
                     {loading ? 'Creating Account...' : 'Create Account'}
                   </button>
@@ -228,10 +231,10 @@ export const SignUpForm: React.FC = () => {
           <div className="mt-8">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300 dark:border-gray-600" />
+                <div className="w-full border-t border-teal-700/50" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white dark:bg-gray-800 text-gray-500">Or continue with</span>
+                <span className="px-2 bg-dark-800 text-gray-400">Or continue with</span>
               </div>
             </div>
             
@@ -239,7 +242,7 @@ export const SignUpForm: React.FC = () => {
               type="button"
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className="mt-4 w-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 py-3 px-4 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3"
+              className="mt-4 w-full bg-dark-700/50 border border-teal-700/50 text-gray-300 py-3 px-4 rounded-lg font-medium hover:bg-dark-600/50 hover:scale-105 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 flex items-center justify-center gap-3"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -254,8 +257,8 @@ export const SignUpForm: React.FC = () => {
           {message && (
             <div className={`mt-6 p-4 rounded-lg text-sm ${
               message.includes('successfully') 
-                ? 'bg-green-50 dark:bg-green-900 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-700'
-                : 'bg-red-50 dark:bg-red-900 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700'
+                ? 'bg-teal-900/50 text-teal-300 border border-teal-700/50'
+                : 'bg-red-900/50 text-red-300 border border-red-700/50'
             }`}>
               {message}
             </div>

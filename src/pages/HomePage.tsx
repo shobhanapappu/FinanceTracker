@@ -8,7 +8,7 @@ import { Footer } from '../components/Footer';
 
 export const HomePage: React.FC = () => {
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900">
+    <div className="min-h-screen bg-dark-950">
       <Header />
       <Hero />
       <Features />
