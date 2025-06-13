@@ -81,3 +81,15 @@ export const getTrialEndDate = (subscription: Subscription | null): string => {
     day: 'numeric'
   });
 };
+
+// Get days remaining in trial
+export const getTrialDaysRemaining = (subscription: Subscription | null): number => {
+  if (!subscription?.trial_end_date || subscription.plan === 'premium') return 0;
+  
+  const trialEndDate = new Date(subscription.trial_end_date);
+  const now = new Date();
+  const diffTime = trialEndDate.getTime() - now.getTime();
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  
+  return Math.max(0, diffDays);
+};

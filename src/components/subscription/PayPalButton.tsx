@@ -32,7 +32,7 @@ export const PayPalButton: React.FC<PayPalButtonProps> = ({ onSuccess, onError }
           },
           createSubscription: function(data: any, actions: any) {
             return actions.subscription.create({
-              'plan_id': 'P-5ML4271244454362WXNWU5NQ', // This would be your actual plan ID
+              'plan_id': 'P-2HF61636JC234640BNBGEIUI', // Updated plan ID
               'application_context': {
                 'brand_name': 'FinanceTracker',
                 'locale': 'en-US',
@@ -49,16 +49,16 @@ export const PayPalButton: React.FC<PayPalButtonProps> = ({ onSuccess, onError }
           },
           onApprove: function(data: any, actions: any) {
             // For sandbox testing, we'll simulate a successful subscription
-            const mockSubscriptionDetails = {
-              id: data.subscriptionID || 'MOCK_SUB_' + Date.now(),
+            const subscriptionDetails = {
+              id: data.subscriptionID || 'SANDBOX_SUB_' + Date.now(),
               status: 'ACTIVE',
-              plan_id: 'P-5ML4271244454362WXNWU5NQ',
+              plan_id: 'P-2HF61636JC234640BNBGEIUI',
               subscriber: {
                 email_address: 'subscriber@example.com'
               }
             };
             
-            onSuccess(mockSubscriptionDetails);
+            onSuccess(subscriptionDetails);
           },
           onError: function(err: any) {
             console.error('PayPal error:', err);
@@ -87,6 +87,12 @@ export const PayPalButton: React.FC<PayPalButtonProps> = ({ onSuccess, onError }
   return (
     <div className="w-full max-w-md mx-auto">
       <div ref={paypalRef} className="min-h-[50px]" />
+      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+        <p className="text-xs text-blue-700 dark:text-blue-300 text-center">
+          <strong>Note:</strong> For PayPal callbacks to work in production, use a public URL (e.g., via ngrok). 
+          This sandbox environment uses localhost URLs for testing.
+        </p>
+      </div>
     </div>
   );
 };
