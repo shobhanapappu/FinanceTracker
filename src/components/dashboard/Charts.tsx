@@ -9,12 +9,12 @@ interface ChartsProps {
 export const Charts: React.FC<ChartsProps> = ({ isDemoUser = false, chartData }) => {
   const demoChartData = {
     monthlyData: [
-      { month: 'Aug', income: 0, expenses: 0, investments: 5000, savings: 2000 },
-      { month: 'Sep', income: 0, expenses: 0, investments: 5000, savings: 2000 },
-      { month: 'Oct', income: 0, expenses: 0, investments: 5000, savings: 2000 },
-      { month: 'Nov', income: 0, expenses: 0, investments: 5000, savings: 2000 },
-      { month: 'Dec', income: 0, expenses: 0, investments: 5000, savings: 2000 },
-      { month: 'Jan', income: 646765767, expenses: 38000, investments: 5000, savings: 2000 },
+      { month: 'Aug', income: 4200, expenses: 2800 },
+      { month: 'Sep', income: 4800, expenses: 3200 },
+      { month: 'Oct', income: 5200, expenses: 2900 },
+      { month: 'Nov', income: 4600, expenses: 3100 },
+      { month: 'Dec', income: 5500, expenses: 3400 },
+      { month: 'Jan', income: 5000, expenses: 2000 },
     ],
     expenseCategories: [
       { category: 'Marketing', amount: 800, percentage: 40 },
@@ -36,7 +36,7 @@ export const Charts: React.FC<ChartsProps> = ({ isDemoUser = false, chartData })
           </div>
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Monthly Financial Trends
+              Income vs Expenses
             </h3>
             <p className="text-sm text-gray-600 dark:text-gray-400">
               Last 6 months trend
@@ -46,46 +46,34 @@ export const Charts: React.FC<ChartsProps> = ({ isDemoUser = false, chartData })
 
         {data.monthlyData && data.monthlyData.length > 0 ? (
           <div className="space-y-4">
-            {data.monthlyData.map((month: any, index: number) => {
-              const maxDisplayValue = 100000; // Cap for display purposes
-              const scaleValue = (value: number) =>
-                Math.min(value, maxDisplayValue) / maxDisplayValue * 100;
-
-              return (
-                <div key={index} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                      {month.month}
+            {data.monthlyData.map((month: any, index: number) => (
+              <div key={index} className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    {month.month}
+                  </span>
+                  <div className="flex gap-4 text-sm">
+                    <span className="text-green-600 dark:text-green-400">
+                      ${month.income.toLocaleString()}
                     </span>
-                    <div className="flex gap-2 text-sm">
-                      <span>I: ${month.income.toLocaleString()}</span>
-                      <span>E: ${month.expenses.toLocaleString()}</span>
-                      <span>Inv: ${month.investments.toLocaleString()}</span>
-                      <span>S: ${month.savings.toLocaleString()}</span>
-                    </div>
-                  </div>
-                  <div className="flex gap-1 h-4">
-                    <div
-                      className="bg-gradient-to-r from-green-500 to-green-600 rounded-l"
-                      style={{ width: `${scaleValue(month.income)}%` }}
-                    />
-                    <div
-                      className="bg-gradient-to-r from-red-500 to-red-600"
-                      style={{ width: `${scaleValue(month.expenses)}%` }}
-                    />
-                    <div
-                      className="bg-gradient-to-r from-blue-500 to-blue-600"
-                      style={{ width: `${scaleValue(month.investments)}%` }}
-                    />
-                    <div
-                      className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-r"
-                      style={{ width: `${scaleValue(month.savings)}%` }}
-                    />
+                    <span className="text-red-600 dark:text-red-400">
+                      ${month.expenses.toLocaleString()}
+                    </span>
                   </div>
                 </div>
-              );
-            })}
-
+                <div className="flex gap-1 h-4">
+                  <div 
+                    className="bg-gradient-to-r from-green-500 to-green-600 rounded-l"
+                    style={{ width: `${(month.income / Math.max(...data.monthlyData.map((m: any) => m.income))) * 100}%` }}
+                  />
+                  <div 
+                    className="bg-gradient-to-r from-red-500 to-red-600 rounded-r"
+                    style={{ width: `${(month.expenses / Math.max(...data.monthlyData.map((m: any) => m.income))) * 100}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+            
             <div className="flex justify-center gap-6 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-gradient-to-r from-green-500 to-green-600 rounded"></div>
@@ -94,14 +82,6 @@ export const Charts: React.FC<ChartsProps> = ({ isDemoUser = false, chartData })
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 bg-gradient-to-r from-red-500 to-red-600 rounded"></div>
                 <span className="text-xs text-gray-600 dark:text-gray-400">Expenses</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded"></div>
-                <span className="text-xs text-gray-600 dark:text-gray-400">Investments</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 bg-gradient-to-r from-purple-500 to-purple-600 rounded"></div>
-                <span className="text-xs text-gray-600 dark:text-gray-400">Savings</span>
               </div>
             </div>
           </div>
@@ -145,7 +125,7 @@ export const Charts: React.FC<ChartsProps> = ({ isDemoUser = false, chartData })
               
               return (
                 <div key={index} className="space-y-2">
-                  <div className "flex justify-between items-center">
+                  <div className="flex justify-between items-center">
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                       {category.category}
                     </span>
