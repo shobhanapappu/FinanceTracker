@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Crown, Check, ArrowLeft, Loader, Clock, Star } from 'lucide-react';
+import { Crown, Check, ArrowLeft, Loader, Clock, Star, Info } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DashboardHeader } from '../components/dashboard/DashboardHeader';
 import { Footer } from '../components/Footer';
@@ -145,6 +145,35 @@ export const Subscription: React.FC = () => {
             <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed">
               Unlock powerful features to take control of your finances and achieve your goals faster
             </p>
+          </div>
+
+          {/* PayPal Testing Notice */}
+          <div className="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
+            <div className="flex items-start gap-4">
+              <div className="p-2 bg-blue-500 rounded-lg">
+                <Info className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-2">
+                  PayPal Sandbox Testing
+                </h3>
+                <p className="text-blue-700 dark:text-blue-300 mb-3">
+                  This is a test environment. Use the following credentials to test PayPal login:
+                </p>
+                <div className="bg-blue-100 dark:bg-blue-800/30 rounded-lg p-4 font-mono text-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <strong className="text-blue-800 dark:text-blue-200">Test Email:</strong>
+                      <div className="text-blue-700 dark:text-blue-300">sb-buyer@business.example.com</div>
+                    </div>
+                    <div>
+                      <strong className="text-blue-800 dark:text-blue-200">Test Password:</strong>
+                      <div className="text-blue-700 dark:text-blue-300">testpassword123</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
