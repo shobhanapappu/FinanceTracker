@@ -6,12 +6,12 @@ import { Footer } from '../components/Footer';
 import { PayPalButton } from '../components/subscription/PayPalButton';
 import { Toast } from '../components/Toast';
 import { getCurrentUser } from '../lib/supabase';
-import { getUserSubscription, upgradeSubscription, hasPremiumAccess, getTrialEndDate, Subscription } from '../lib/subscription';
+import { getUserSubscription, upgradeSubscription, hasPremiumAccess, getTrialEndDate, Subscription as SubscriptionType } from '../lib/subscription';
 
 export const Subscription: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [upgrading, setUpgrading] = useState(false);
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  const [subscription, setSubscription] = useState<SubscriptionType | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [isDemoUser, setIsDemoUser] = useState(false);
   const navigate = useNavigate();
