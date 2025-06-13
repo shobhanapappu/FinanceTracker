@@ -6,6 +6,7 @@ import { Dashboard } from './pages/Dashboard';
 import { AuthPage } from './pages/AuthPage';
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
 import { Pricing } from './pages/Pricing';
+import { Subscription } from './pages/Subscription';
 import { Income } from './pages/Income';
 import { Expenses } from './pages/Expenses';
 import { Budgets } from './pages/Budgets';
@@ -24,6 +25,7 @@ function App() {
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/pricing" element={<Pricing />} />
+          <Route path="/subscription" element={<Subscription />} />
           <Route path="/income" element={<Income />} />
           <Route path="/expenses" element={<Expenses />} />
           <Route path="/budgets" element={<Budgets />} />

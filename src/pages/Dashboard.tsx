@@ -9,9 +9,11 @@ import { FinancialHealth } from '../components/dashboard/FinancialHealth';
 import { RecentTransactions } from '../components/dashboard/RecentTransactions';
 import { Charts } from '../components/dashboard/Charts';
 import { DemoBanner } from '../components/dashboard/DemoBanner';
+import { SubscriptionBanner } from '../components/subscription/SubscriptionBanner';
 import { PieChart as PieChartComponent } from '../components/dashboard/PieChart';
 import { Footer } from '../components/Footer';
 import { Toast } from '../components/Toast';
+import { useSubscription } from '../hooks/useSubscription';
 import { 
   getCurrentUser, 
   getIncome, 
@@ -26,7 +28,6 @@ import {
 export const Dashboard: React.FC = () => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [isDemoUser, setIsDemoUser] = useState(false);
   const [metrics, setMetrics] = useState({
     totalIncome: 0,
     totalExpenses: 0,
@@ -37,6 +38,7 @@ export const Dashboard: React.FC = () => {
   const [comprehensiveData, setComprehensiveData] = useState<any>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const navigate = useNavigate();
+  const { subscription, isDemoUser } = useSubscription();
 
   // Demo data for demo users
   const demoMetrics = {
@@ -88,10 +90,7 @@ export const Dashboard: React.FC = () => {
   useEffect(() => {
     const checkAuth = async () => {
       // Check if user is in demo mode
-      const demoMode = localStorage.getItem('isDemoUser') === 'true';
-      
-      if (demoMode) {
-        setIsDemoUser(true);
+      if (isDemoUser) {
         setMetrics(demoMetrics);
         setChartData(demoChartData);
         setComprehensiveData(demoComprehensiveData);
@@ -112,7 +111,7 @@ export const Dashboard: React.FC = () => {
     };
 
     checkAuth();
-  }, [navigate]);
+  }, [navigate, isDemoUser]);
 
   const loadDashboardData = async (userId: string) => {
     try {
@@ -254,6 +253,9 @@ export const Dashboard: React.FC = () => {
         <main className="max-w-7xl mx-auto px-6 py-8">
           {/* Demo Banner */}
           {isDemoUser && <DemoBanner />}
+
+          {/* Subscription Banner */}
+          {!isDemoUser && <SubscriptionBanner subscription={subscription} />}
 
           {/* Welcome Section */}
           <div className="mb-8">

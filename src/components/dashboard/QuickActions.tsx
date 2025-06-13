@@ -4,6 +4,8 @@ import { AddIncomeModal } from './modals/AddIncomeModal';
 import { AddExpenseModal } from './modals/AddExpenseModal';
 import { AddInvestmentModal } from './modals/AddInvestmentModal';
 import { AddSavingsModal } from './modals/AddSavingsModal';
+import { PremiumFeatureButton } from '../PremiumFeatureButton';
+import { useSubscription } from '../../hooks/useSubscription';
 
 interface QuickActionsProps {
   isDemoUser?: boolean;
@@ -15,6 +17,7 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
   onSuccess 
 }) => {
   const [activeModal, setActiveModal] = useState<string | null>(null);
+  const { canAccessPremiumFeatures } = useSubscription();
 
   const actions = [
     {
@@ -22,35 +25,44 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
       label: 'Add Income',
       icon: DollarSign,
       color: 'bg-gradient-to-r from-green-500 to-green-600',
-      successMessage: 'Income added successfully!'
+      successMessage: 'Income added successfully!',
+      isPremium: false
     },
     {
       id: 'expense',
       label: 'Add Expense',
       icon: CreditCard,
       color: 'bg-gradient-to-r from-red-500 to-red-600',
-      successMessage: 'Expense added successfully!'
+      successMessage: 'Expense added successfully!',
+      isPremium: false
     },
     {
       id: 'investment',
       label: 'Add Investment',
       icon: TrendingUp,
       color: 'bg-gradient-to-r from-blue-500 to-blue-600',
-      successMessage: 'Investment added successfully!'
+      successMessage: 'Investment added successfully!',
+      isPremium: false
     },
     {
       id: 'savings',
       label: 'Add Savings Goal',
       icon: Target,
       color: 'bg-gradient-to-r from-purple-500 to-purple-600',
-      successMessage: 'Savings goal added successfully!'
+      successMessage: 'Savings goal added successfully!',
+      isPremium: true
     },
   ];
 
-  const handleActionClick = (actionId: string) => {
+  const handleActionClick = (actionId: string, isPremium: boolean) => {
     if (isDemoUser) {
       return;
     }
+    
+    if (isPremium && !canAccessPremiumFeatures) {
+      return; // PremiumFeatureButton will handle navigation
+    }
+    
     setActiveModal(actionId);
   };
 
@@ -75,21 +87,19 @@ export const QuickActions: React.FC<QuickActionsProps> = ({
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {actions.map((action) => (
-            <button
+            <PremiumFeatureButton
               key={action.id}
-              onClick={() => handleActionClick(action.id)}
-              className={`${action.color} text-white p-4 rounded-lg font-medium hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2 w-full ${
-                isDemoUser ? 'cursor-not-allowed opacity-75' : ''
-              }`}
-              disabled={isDemoUser}
-              title={isDemoUser ? 'Sign up to add entries' : ''}
+              canAccess={!action.isPremium || canAccessPremiumFeatures}
+              isDemoUser={isDemoUser}
+              onClick={() => handleActionClick(action.id, action.isPremium)}
+              className={`${action.color} text-white p-4 rounded-lg font-medium hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md flex items-center justify-center gap-2 w-full`}
             >
               <action.icon className="w-5 h-5" />
               <span className="hidden sm:inline">{action.label}</span>
               <span className="sm:hidden">
                 <Plus className="w-4 h-4" />
               </span>
-            </button>
+            </PremiumFeatureButton>
           ))}
         </div>
       </div>

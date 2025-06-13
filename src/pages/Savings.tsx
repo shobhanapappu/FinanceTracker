@@ -5,7 +5,9 @@ import { Footer } from '../components/Footer';
 import { AddSavingsModal } from '../components/dashboard/modals/AddSavingsModal';
 import { DeleteConfirmModal } from '../components/dashboard/DeleteConfirmModal';
 import { PieChart as PieChartComponent } from '../components/dashboard/PieChart';
+import { PremiumFeatureButton } from '../components/PremiumFeatureButton';
 import { Toast } from '../components/Toast';
+import { useSubscription } from '../hooks/useSubscription';
 import { getSavingsGoals, getCurrentUser, exportToCSV, deleteSavingsGoal } from '../lib/supabase';
 
 export const Savings: React.FC = () => {
@@ -15,8 +17,8 @@ export const Savings: React.FC = () => {
   const [savingsGoals, setSavingsGoals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteLoading, setDeleteLoading] = useState(false);
-  const [isDemoUser, setIsDemoUser] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const { isDemoUser, canAccessPremiumFeatures } = useSubscription();
 
   const mockSavingsData = [
     {
@@ -50,10 +52,7 @@ export const Savings: React.FC = () => {
 
   useEffect(() => {
     const loadSavingsGoals = async () => {
-      const demoMode = localStorage.getItem('isDemoUser') === 'true';
-      
-      if (demoMode) {
-        setIsDemoUser(true);
+      if (isDemoUser) {
         setSavingsGoals(mockSavingsData);
         setLoading(false);
         return;
@@ -75,7 +74,7 @@ export const Savings: React.FC = () => {
     };
 
     loadSavingsGoals();
-  }, []);
+  }, [isDemoUser]);
 
   const handleSavingsSuccess = () => {
     setToast({ message: 'Savings goal added successfully!', type: 'success' });
@@ -296,17 +295,15 @@ export const Savings: React.FC = () => {
           {/* Action Bar */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
             <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-              <button
+              <PremiumFeatureButton
+                canAccess={canAccessPremiumFeatures}
+                isDemoUser={isDemoUser}
                 onClick={() => setShowModal(true)}
-                disabled={isDemoUser}
-                className={`bg-gradient-to-r from-purple-500 to-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2 ${
-                  isDemoUser ? 'cursor-not-allowed opacity-75' : ''
-                }`}
-                title={isDemoUser ? 'Sign up to add savings goals' : ''}
+                className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2"
               >
                 <Plus className="w-5 h-5" />
                 Add Savings Goal
-              </button>
+              </PremiumFeatureButton>
 
               <button 
                 onClick={handleExport}
@@ -345,19 +342,17 @@ export const Savings: React.FC = () => {
                           {goal.goal_name}
                         </h3>
                       </div>
-                      <button 
+                      <PremiumFeatureButton
+                        canAccess={canAccessPremiumFeatures}
+                        isDemoUser={isDemoUser}
                         onClick={() => {
                           setSelectedItem(goal);
                           setShowDeleteModal(true);
                         }}
-                        disabled={isDemoUser}
-                        className={`text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 ${
-                          isDemoUser ? 'cursor-not-allowed opacity-50' : ''
-                        }`}
-                        title={isDemoUser ? 'Sign up to delete goals' : 'Delete savings goal'}
+                        className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
                       >
                         <Trash2 className="w-4 h-4" />
-                      </button>
+                      </PremiumFeatureButton>
                     </div>
 
                     <div className="space-y-4">
