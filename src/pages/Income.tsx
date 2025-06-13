@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { DollarSign, Filter, Download, Plus, Trash2, PieChart } from 'lucide-react';
+import { DollarSign, Filter, Download, Plus, Trash2, PieChart, BarChart3 } from 'lucide-react';
 import { DashboardHeader } from '../components/dashboard/DashboardHeader';
 import { Footer } from '../components/Footer';
 import { AddIncomeModal } from '../components/dashboard/modals/AddIncomeModal';
@@ -178,6 +178,20 @@ export const Income: React.FC = () => {
     }));
   }, [income]);
 
+  // Prepare monthly trend data
+  const monthlyTrendData = React.useMemo(() => {
+    const monthlyTotals = income.reduce((acc, item) => {
+      const month = new Date(item.date).toLocaleDateString('en-US', { month: 'short' });
+      acc[month] = (acc[month] || 0) + Number(item.amount);
+      return acc;
+    }, {} as Record<string, number>);
+
+    return Object.entries(monthlyTotals).map(([month, amount]) => ({
+      month,
+      amount
+    }));
+  }, [income]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
@@ -223,39 +237,83 @@ export const Income: React.FC = () => {
                 </div>
               </div>
 
-              {/* Summary Stats */}
+              {/* Monthly Trend Chart */}
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <div className="flex items-center gap-3 mb-6">
                   <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl">
-                    <DollarSign className="w-5 h-5 text-white" />
+                    <BarChart3 className="w-5 h-5 text-white" />
                   </div>
                   <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                    Income Summary
+                    Monthly Income Trend
                   </h3>
                 </div>
                 <div className="space-y-4">
-                  <div className="flex justify-between items-center p-4 bg-green-50 dark:bg-green-900/20 rounded-xl">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Income</span>
-                    <span className="text-2xl font-bold text-green-600 dark:text-green-400">
-                      ${income.reduce((sum, item) => sum + Number(item.amount), 0).toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Average per Entry</span>
-                    <span className="text-xl font-bold text-blue-600 dark:text-blue-400">
-                      ${Math.round(income.reduce((sum, item) => sum + Number(item.amount), 0) / income.length).toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl">
-                    <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Total Entries</span>
-                    <span className="text-xl font-bold text-purple-600 dark:text-purple-400">
-                      {income.length}
-                    </span>
-                  </div>
+                  {monthlyTrendData.map((month, index) => {
+                    const maxAmount = Math.max(...monthlyTrendData.map(m => m.amount));
+                    const percentage = (month.amount / maxAmount) * 100;
+                    
+                    return (
+                      <div key={index} className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                            {month.month}
+                          </span>
+                          <span className="text-sm font-bold text-green-600 dark:text-green-400">
+                            ${month.amount.toLocaleString()}
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-lg h-3 overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-green-500 to-green-600 rounded-lg transition-all duration-1000 ease-out"
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </div>
           )}
+
+          {/* Summary Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-xl">
+                  <DollarSign className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Income</h3>
+              </div>
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                ${income.reduce((sum, item) => sum + Number(item.amount), 0).toLocaleString()}
+              </p>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl">
+                  <BarChart3 className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Average per Entry</h3>
+              </div>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                ${Math.round(income.reduce((sum, item) => sum + Number(item.amount), 0) / income.length).toLocaleString()}
+              </p>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl">
+                  <PieChart className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Entries</h3>
+              </div>
+              <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">
+                {income.length}
+              </p>
+            </div>
+          </div>
 
           {/* Action Bar */}
           <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
@@ -385,6 +443,14 @@ export const Income: React.FC = () => {
               </div>
             )}
           </div>
+
+          {isDemoUser && (
+            <div className="mt-8 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-4">
+              <p className="text-sm text-green-700 dark:text-green-300">
+                <strong>Demo Mode:</strong> Sign up to add and manage your own income records with real data.
+              </p>
+            </div>
+          )}
         </main>
 
         <Footer />

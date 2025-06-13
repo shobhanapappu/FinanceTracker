@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { DollarSign, CreditCard, TrendingUp, Target } from 'lucide-react';
+import { DollarSign, CreditCard, TrendingUp, Target, PieChart, BarChart3 } from 'lucide-react';
 import { DashboardHeader } from '../components/dashboard/DashboardHeader';
 import { MetricCard } from '../components/dashboard/MetricCard';
 import { QuickActions } from '../components/dashboard/QuickActions';
@@ -9,6 +9,7 @@ import { FinancialHealth } from '../components/dashboard/FinancialHealth';
 import { RecentTransactions } from '../components/dashboard/RecentTransactions';
 import { Charts } from '../components/dashboard/Charts';
 import { DemoBanner } from '../components/dashboard/DemoBanner';
+import { PieChart as PieChartComponent } from '../components/dashboard/PieChart';
 import { Footer } from '../components/Footer';
 import { Toast } from '../components/Toast';
 import { 
@@ -17,6 +18,7 @@ import {
   getExpenses, 
   getInvestments, 
   getSavingsGoals,
+  getBudgets,
   getMonthlyData,
   getExpensesByCategory
 } from '../lib/supabase';
@@ -32,6 +34,7 @@ export const Dashboard: React.FC = () => {
     totalSavings: 0,
   });
   const [chartData, setChartData] = useState<any>(null);
+  const [comprehensiveData, setComprehensiveData] = useState<any>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const navigate = useNavigate();
 
@@ -60,6 +63,28 @@ export const Dashboard: React.FC = () => {
     ],
   };
 
+  const demoComprehensiveData = {
+    allCategories: [
+      { label: 'Income', value: 5000, color: '#10B981' },
+      { label: 'Expenses', value: 2000, color: '#EF4444' },
+      { label: 'Investments', value: 1000, color: '#3B82F6' },
+      { label: 'Savings', value: 500, color: '#8B5CF6' },
+    ],
+    monthlyTrends: [
+      { month: 'Aug', income: 4200, expenses: 2800, investments: 800, savings: 400 },
+      { month: 'Sep', income: 4800, expenses: 3200, investments: 900, savings: 450 },
+      { month: 'Oct', income: 5200, expenses: 2900, investments: 1100, savings: 500 },
+      { month: 'Nov', income: 4600, expenses: 3100, investments: 950, savings: 480 },
+      { month: 'Dec', income: 5500, expenses: 3400, investments: 1200, savings: 550 },
+      { month: 'Jan', income: 5000, expenses: 2000, investments: 1000, savings: 500 },
+    ],
+    budgetProgress: [
+      { category: 'Marketing', spent: 800, limit: 1000, percentage: 80 },
+      { category: 'Travel', spent: 600, limit: 800, percentage: 75 },
+      { category: 'Software', spent: 200, limit: 300, percentage: 67 },
+    ]
+  };
+
   useEffect(() => {
     const checkAuth = async () => {
       // Check if user is in demo mode
@@ -69,6 +94,7 @@ export const Dashboard: React.FC = () => {
         setIsDemoUser(true);
         setMetrics(demoMetrics);
         setChartData(demoChartData);
+        setComprehensiveData(demoComprehensiveData);
         setLoading(false);
         return;
       }
@@ -91,11 +117,12 @@ export const Dashboard: React.FC = () => {
   const loadDashboardData = async (userId: string) => {
     try {
       // Load all financial data
-      const [incomeResult, expensesResult, investmentsResult, savingsResult] = await Promise.all([
+      const [incomeResult, expensesResult, investmentsResult, savingsResult, budgetsResult] = await Promise.all([
         getIncome(userId),
         getExpenses(userId),
         getInvestments(userId),
-        getSavingsGoals(userId)
+        getSavingsGoals(userId),
+        getBudgets(userId)
       ]);
 
       // Calculate totals
@@ -127,6 +154,35 @@ export const Dashboard: React.FC = () => {
         monthlyData,
         expenseCategories,
       });
+
+      // Create comprehensive data for new charts
+      const comprehensiveData = {
+        allCategories: [
+          { label: 'Income', value: totalIncome, color: '#10B981' },
+          { label: 'Expenses', value: totalExpenses, color: '#EF4444' },
+          { label: 'Investments', value: totalInvestments, color: '#3B82F6' },
+          { label: 'Savings', value: totalSavings, color: '#8B5CF6' },
+        ],
+        monthlyTrends: monthlyData.map(month => ({
+          ...month,
+          investments: investmentsResult.data?.filter(inv => 
+            inv.date.startsWith(new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0'))
+          ).reduce((sum, inv) => sum + Number(inv.amount), 0) || 0,
+          savings: savingsResult.data?.reduce((sum, goal) => sum + Number(goal.current_amount), 0) || 0
+        })),
+        budgetProgress: budgetsResult.data?.map(budget => {
+          const spent = expensesResult.data?.filter(exp => exp.category === budget.category)
+            .reduce((sum, exp) => sum + Number(exp.amount), 0) || 0;
+          return {
+            category: budget.category,
+            spent,
+            limit: Number(budget.budget_limit),
+            percentage: Math.round((spent / Number(budget.budget_limit)) * 100)
+          };
+        }) || []
+      };
+
+      setComprehensiveData(comprehensiveData);
 
     } catch (error) {
       console.error('Error loading dashboard data:', error);
@@ -240,6 +296,141 @@ export const Dashboard: React.FC = () => {
             />
           </div>
 
+          {/* Comprehensive Financial Charts */}
+          {comprehensiveData && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              {/* Overall Financial Distribution Pie Chart */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl">
+                    <PieChart className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Financial Overview
+                  </h3>
+                </div>
+                <div className="flex justify-center">
+                  <PieChartComponent data={comprehensiveData.allCategories} size={280} />
+                </div>
+              </div>
+
+              {/* Monthly Trends for All Categories */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-2 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl">
+                    <BarChart3 className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    Monthly Financial Trends
+                  </h3>
+                </div>
+                <div className="space-y-4">
+                  {comprehensiveData.monthlyTrends.map((month: any, index: number) => (
+                    <div key={index} className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          {month.month}
+                        </span>
+                        <div className="flex gap-2 text-xs">
+                          <span className="text-green-600 dark:text-green-400">I: ${month.income}</span>
+                          <span className="text-red-600 dark:text-red-400">E: ${month.expenses}</span>
+                          <span className="text-blue-600 dark:text-blue-400">Inv: ${month.investments || 0}</span>
+                          <span className="text-purple-600 dark:text-purple-400">S: ${month.savings || 0}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-1 h-4">
+                        <div 
+                          className="bg-gradient-to-r from-green-500 to-green-600 rounded-l"
+                          style={{ width: `${(month.income / 6000) * 100}%` }}
+                          title={`Income: $${month.income}`}
+                        />
+                        <div 
+                          className="bg-gradient-to-r from-red-500 to-red-600"
+                          style={{ width: `${(month.expenses / 6000) * 100}%` }}
+                          title={`Expenses: $${month.expenses}`}
+                        />
+                        <div 
+                          className="bg-gradient-to-r from-blue-500 to-blue-600"
+                          style={{ width: `${((month.investments || 0) / 6000) * 100}%` }}
+                          title={`Investments: $${month.investments || 0}`}
+                        />
+                        <div 
+                          className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-r"
+                          style={{ width: `${((month.savings || 0) / 6000) * 100}%` }}
+                          title={`Savings: $${month.savings || 0}`}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex justify-center gap-4 mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-gradient-to-r from-green-500 to-green-600 rounded"></div>
+                    <span className="text-xs text-gray-600 dark:text-gray-400">Income</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-gradient-to-r from-red-500 to-red-600 rounded"></div>
+                    <span className="text-xs text-gray-600 dark:text-gray-400">Expenses</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded"></div>
+                    <span className="text-xs text-gray-600 dark:text-gray-400">Investments</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-gradient-to-r from-purple-500 to-purple-600 rounded"></div>
+                    <span className="text-xs text-gray-600 dark:text-gray-400">Savings</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Budget Progress Chart */}
+          {comprehensiveData?.budgetProgress && comprehensiveData.budgetProgress.length > 0 && (
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-8">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-2 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl">
+                  <Target className="w-5 h-5 text-white" />
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  Budget Progress Overview
+                </h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {comprehensiveData.budgetProgress.map((budget: any, index: number) => (
+                  <div key={index} className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                        {budget.category}
+                      </span>
+                      <span className={`text-sm font-bold ${
+                        budget.percentage > 80 ? 'text-red-600 dark:text-red-400' : 
+                        budget.percentage > 60 ? 'text-yellow-600 dark:text-yellow-400' : 
+                        'text-green-600 dark:text-green-400'
+                      }`}>
+                        {budget.percentage}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-lg h-3 overflow-hidden">
+                      <div
+                        className={`h-full rounded-lg transition-all duration-1000 ease-out ${
+                          budget.percentage > 80 ? 'bg-gradient-to-r from-red-500 to-red-600' : 
+                          budget.percentage > 60 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' : 
+                          'bg-gradient-to-r from-green-500 to-green-600'
+                        }`}
+                        style={{ width: `${Math.min(budget.percentage, 100)}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400">
+                      <span>${budget.spent} spent</span>
+                      <span>${budget.limit} limit</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Quick Actions */}
           <div className="mb-8">
             <QuickActions 
@@ -265,7 +456,7 @@ export const Dashboard: React.FC = () => {
             />
           </div>
 
-          {/* Charts */}
+          {/* Original Charts */}
           <div className="mb-8">
             <Charts 
               isDemoUser={isDemoUser}
