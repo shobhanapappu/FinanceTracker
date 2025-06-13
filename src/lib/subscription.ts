@@ -16,7 +16,7 @@ export const getUserSubscription = async (userId: string) => {
     .from('subscriptions')
     .select('*')
     .eq('user_id', userId)
-    .single();
+    .maybeSingle();
   
   return { data, error };
 };
