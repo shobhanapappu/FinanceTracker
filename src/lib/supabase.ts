@@ -141,12 +141,37 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
   return { data, error };
 };
 
-// Delete user account and all related data
+// Delete user account using Edge Function
 export const deleteUserAccount = async (userId: string) => {
-  // First, delete the user from auth.users
-  // This will cascade delete all related data due to foreign key constraints
-  const { error } = await supabase.auth.admin.deleteUser(userId);
-  return { error };
+  try {
+    // Get the current session to include the JWT token
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      return { error: { message: 'No active session found' } };
+    }
+
+    // Call the Edge Function with proper authentication
+    const response = await fetch(`${supabaseUrl}/functions/v1/delete-user`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ userId }),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      return { error: { message: result.error || 'Failed to delete account' } };
+    }
+
+    return { error: null };
+  } catch (error) {
+    console.error('Error calling delete-user function:', error);
+    return { error: { message: 'Network error occurred' } };
+  }
 };
 
 // Export all user data for premium users
