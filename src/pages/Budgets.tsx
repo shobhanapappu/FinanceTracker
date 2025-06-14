@@ -326,11 +326,11 @@ export const Budgets: React.FC = () => {
                           <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
                             {budget.category}
                           </span>
-                          <span className={`text-sm font-bold ${
-                            progress > 80 ? 'text-red-600 dark:text-red-400' : 
-                            progress > 60 ? 'text-yellow-600 dark:text-yellow-400' : 
-                            'text-green-600 dark:text-green-400'
-                          }`}>
+                          <span className={`text-lg font-bold bg-gradient-to-r ${
+                            progress > 80 ? 'from-red-500 to-red-600' : 
+                            progress > 60 ? 'from-yellow-500 to-yellow-600' : 
+                            'from-green-500 to-green-600'
+                          } bg-clip-text text-transparent`}>
                             {progress}%
                           </span>
                         </div>
