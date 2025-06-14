@@ -141,6 +141,46 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
   return { data, error };
 };
 
+// Delete user account and all related data
+export const deleteUserAccount = async (userId: string) => {
+  // First, delete the user from auth.users
+  // This will cascade delete all related data due to foreign key constraints
+  const { error } = await supabase.auth.admin.deleteUser(userId);
+  return { error };
+};
+
+// Export all user data for premium users
+export const exportAllUserData = async (userId: string) => {
+  try {
+    const [incomeResult, expensesResult, investmentsResult, savingsResult, budgetsResult, profileResult] = await Promise.all([
+      getIncome(userId),
+      getExpenses(userId),
+      getInvestments(userId),
+      getSavingsGoals(userId),
+      getBudgets(userId),
+      getUserProfile(userId)
+    ]);
+
+    const exportData = {
+      profile: profileResult.data,
+      income: incomeResult.data || [],
+      expenses: expensesResult.data || [],
+      investments: investmentsResult.data || [],
+      savings: savingsResult.data || [],
+      budgets: budgetsResult.data || [],
+      exportDate: new Date().toISOString(),
+      totalIncome: incomeResult.data?.reduce((sum, item) => sum + Number(item.amount), 0) || 0,
+      totalExpenses: expensesResult.data?.reduce((sum, item) => sum + Number(item.amount), 0) || 0,
+      totalInvestments: investmentsResult.data?.reduce((sum, item) => sum + Number(item.amount), 0) || 0,
+      totalSavings: savingsResult.data?.reduce((sum, item) => sum + Number(item.current_amount), 0) || 0,
+    };
+
+    return { data: exportData, error: null };
+  } catch (error) {
+    return { data: null, error };
+  }
+};
+
 // Income Functions
 export const getIncome = async (userId: string) => {
   const { data, error } = await supabase
@@ -389,6 +429,20 @@ export const exportToCSV = (data: any[], filename: string) => {
   ].join('\n');
   
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute('download', filename);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+// Export comprehensive data as JSON for premium users
+export const exportToJSON = (data: any, filename: string) => {
+  const jsonContent = JSON.stringify(data, null, 2);
+  const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
   link.setAttribute('href', url);

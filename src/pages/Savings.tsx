@@ -5,6 +5,8 @@ import { Footer } from '../components/Footer';
 import { AddSavingsModal } from '../components/dashboard/modals/AddSavingsModal';
 import { DeleteConfirmModal } from '../components/dashboard/DeleteConfirmModal';
 import { PieChart as PieChartComponent } from '../components/dashboard/PieChart';
+import { FilterDropdown, FilterOptions } from '../components/FilterDropdown';
+import { ExportButton } from '../components/ExportButton';
 import { PremiumFeatureButton } from '../components/PremiumFeatureButton';
 import { Toast } from '../components/Toast';
 import { useSubscription } from '../hooks/useSubscription';
@@ -15,6 +17,7 @@ export const Savings: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [savingsGoals, setSavingsGoals] = useState<any[]>([]);
+  const [filteredSavingsGoals, setFilteredSavingsGoals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -54,6 +57,7 @@ export const Savings: React.FC = () => {
     const loadSavingsGoals = async () => {
       if (isDemoUser) {
         setSavingsGoals(mockSavingsData);
+        setFilteredSavingsGoals(mockSavingsData);
         setLoading(false);
         return;
       }
@@ -64,6 +68,7 @@ export const Savings: React.FC = () => {
           const { data, error } = await getSavingsGoals(user.id);
           if (!error && data) {
             setSavingsGoals(data);
+            setFilteredSavingsGoals(data);
           }
         }
       } catch (error) {
@@ -76,6 +81,72 @@ export const Savings: React.FC = () => {
     loadSavingsGoals();
   }, [isDemoUser]);
 
+  const handleFilterChange = (filters: FilterOptions) => {
+    let filtered = [...savingsGoals];
+
+    // Filter by date range (using deadline)
+    if (filters.dateRange && filters.dateRange !== 'All') {
+      const now = new Date();
+      let startDate = new Date();
+
+      switch (filters.dateRange) {
+        case 'Last 7 Days':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case 'Last 30 Days':
+          startDate.setDate(now.getDate() - 30);
+          break;
+        case 'Last 90 Days':
+          startDate.setDate(now.getDate() - 90);
+          break;
+        case 'This Year':
+          startDate = new Date(now.getFullYear(), 0, 1);
+          break;
+      }
+
+      filtered = filtered.filter(goal => 
+        goal.deadline ? new Date(goal.deadline) >= startDate : true
+      );
+    }
+
+    // Filter by amount range (using target_amount)
+    if (filters.amountRange?.min !== undefined) {
+      filtered = filtered.filter(goal => Number(goal.target_amount) >= filters.amountRange!.min!);
+    }
+    if (filters.amountRange?.max !== undefined) {
+      filtered = filtered.filter(goal => Number(goal.target_amount) <= filters.amountRange!.max!);
+    }
+
+    // Sort
+    if (filters.sortBy) {
+      filtered.sort((a, b) => {
+        let aValue, bValue;
+        
+        switch (filters.sortBy) {
+          case 'amount':
+            aValue = Number(a.target_amount);
+            bValue = Number(b.target_amount);
+            break;
+          case 'category':
+            aValue = a.goal_name.toLowerCase();
+            bValue = b.goal_name.toLowerCase();
+            break;
+          default:
+            aValue = new Date(a.created_at).getTime();
+            bValue = new Date(b.created_at).getTime();
+        }
+
+        if (filters.sortOrder === 'asc') {
+          return aValue > bValue ? 1 : -1;
+        } else {
+          return aValue < bValue ? 1 : -1;
+        }
+      });
+    }
+
+    setFilteredSavingsGoals(filtered);
+  };
+
   const handleSavingsSuccess = () => {
     setToast({ message: 'Savings goal added successfully!', type: 'success' });
     // Reload savings goals data
@@ -86,6 +157,7 @@ export const Savings: React.FC = () => {
           const { data, error } = await getSavingsGoals(user.id);
           if (!error && data) {
             setSavingsGoals(data);
+            setFilteredSavingsGoals(data);
           }
         }
       } catch (error) {
@@ -106,6 +178,7 @@ export const Savings: React.FC = () => {
       } else {
         setToast({ message: 'Savings goal deleted successfully!', type: 'success' });
         setSavingsGoals(prev => prev.filter(item => item.id !== selectedItem.id));
+        setFilteredSavingsGoals(prev => prev.filter(item => item.id !== selectedItem.id));
         setShowDeleteModal(false);
         setSelectedItem(null);
       }
@@ -117,12 +190,12 @@ export const Savings: React.FC = () => {
   };
 
   const handleExport = () => {
-    if (savingsGoals.length === 0) {
+    if (filteredSavingsGoals.length === 0) {
       setToast({ message: 'No data to export', type: 'error' });
       return;
     }
 
-    const exportData = savingsGoals.map(goal => ({
+    const exportData = filteredSavingsGoals.map(goal => ({
       'Goal Name': goal.goal_name,
       'Target Amount': goal.target_amount,
       'Current Amount': goal.current_amount,
@@ -137,8 +210,8 @@ export const Savings: React.FC = () => {
     setToast({ message: 'Savings goals data exported successfully!', type: 'success' });
   };
 
-  const totalSaved = savingsGoals.reduce((sum, goal) => sum + Number(goal.current_amount), 0);
-  const totalTarget = savingsGoals.reduce((sum, goal) => sum + Number(goal.target_amount), 0);
+  const totalSaved = filteredSavingsGoals.reduce((sum, goal) => sum + Number(goal.current_amount), 0);
+  const totalTarget = filteredSavingsGoals.reduce((sum, goal) => sum + Number(goal.target_amount), 0);
 
   // Prepare pie chart data
   const pieChartData = React.useMemo(() => {
@@ -151,12 +224,12 @@ export const Savings: React.FC = () => {
       '#06B6D4', // cyan
     ];
 
-    return savingsGoals.map((goal, index) => ({
+    return filteredSavingsGoals.map((goal, index) => ({
       label: goal.goal_name,
       value: Number(goal.current_amount),
       color: colors[index % colors.length]
     }));
-  }, [savingsGoals]);
+  }, [filteredSavingsGoals]);
 
   if (loading) {
     return (
@@ -187,9 +260,9 @@ export const Savings: React.FC = () => {
 
           {/* Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-lg">
+                <div className="p-2 bg-gradient-to-br from-green-500 to-green-600 rounded-xl">
                   <Target className="w-5 h-5 text-white" />
                 </div>
                 <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Saved</h3>
@@ -199,9 +272,9 @@ export const Savings: React.FC = () => {
               </p>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg">
+                <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl">
                   <Target className="w-5 h-5 text-white" />
                 </div>
                 <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Total Target</h3>
@@ -211,21 +284,21 @@ export const Savings: React.FC = () => {
               </p>
             </div>
 
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
               <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg">
+                <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl">
                   <Target className="w-5 h-5 text-white" />
                 </div>
                 <h3 className="text-sm font-medium text-gray-600 dark:text-gray-400">Active Goals</h3>
               </div>
               <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-                {savingsGoals.length}
+                {filteredSavingsGoals.length}
               </p>
             </div>
           </div>
 
           {/* Charts Section */}
-          {savingsGoals.length > 0 && (
+          {filteredSavingsGoals.length > 0 && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               {/* Savings Distribution Pie Chart */}
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -253,7 +326,7 @@ export const Savings: React.FC = () => {
                   </h3>
                 </div>
                 <div className="space-y-4">
-                  {savingsGoals.map((goal, index) => {
+                  {filteredSavingsGoals.map((goal, index) => {
                     const progress = Math.round((Number(goal.current_amount) / Number(goal.target_amount)) * 100);
                     
                     return (
@@ -293,49 +366,61 @@ export const Savings: React.FC = () => {
           )}
 
           {/* Action Bar */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
             <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
               <PremiumFeatureButton
                 canAccess={canAccessPremiumFeatures}
                 isDemoUser={isDemoUser}
                 onClick={() => setShowModal(true)}
-                className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-6 py-3 rounded-lg font-medium hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2"
+                className="bg-gradient-to-r from-purple-500 to-purple-600 text-white px-6 py-3 rounded-xl font-medium hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2"
               >
                 <Plus className="w-5 h-5" />
                 Add Savings Goal
               </PremiumFeatureButton>
 
-              <button 
-                onClick={handleExport}
-                disabled={savingsGoals.length === 0}
-                className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Download className="w-4 h-4" />
-                Export CSV
-              </button>
+              <div className="flex gap-3">
+                <FilterDropdown
+                  onFilterChange={handleFilterChange}
+                  showAmountFilter={true}
+                  showCategoryFilter={false}
+                  showDateFilter={true}
+                />
+                
+                <ExportButton
+                  onExportCSV={handleExport}
+                  canAccess={canAccessPremiumFeatures}
+                  isDemoUser={isDemoUser}
+                  disabled={filteredSavingsGoals.length === 0}
+                />
+              </div>
             </div>
           </div>
 
           {/* Savings Goals Grid */}
-          {savingsGoals.length === 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+          {filteredSavingsGoals.length === 0 ? (
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
               <Target className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500 dark:text-gray-400 mb-2">No savings goals yet</p>
+              <p className="text-gray-500 dark:text-gray-400 mb-2">
+                {savingsGoals.length === 0 ? 'No savings goals yet' : 'No goals match your filters'}
+              </p>
               <p className="text-sm text-gray-400 dark:text-gray-500">
-                Create your first savings goal to start tracking your progress
+                {savingsGoals.length === 0 
+                  ? 'Create your first savings goal to start tracking your progress'
+                  : 'Try adjusting your filter criteria'
+                }
               </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {savingsGoals.map((goal) => {
+              {filteredSavingsGoals.map((goal) => {
                 const progress = Math.round((Number(goal.current_amount) / Number(goal.target_amount)) * 100);
                 const isOverdue = goal.deadline && new Date(goal.deadline) < new Date();
                 
                 return (
-                  <div key={goal.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                  <div key={goal.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg">
+                        <div className="p-2 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl">
                           <Target className="w-5 h-5 text-white" />
                         </div>
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -349,7 +434,7 @@ export const Savings: React.FC = () => {
                           setSelectedItem(goal);
                           setShowDeleteModal(true);
                         }}
-                        className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+                        className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors p-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20"
                       >
                         <Trash2 className="w-4 h-4" />
                       </PremiumFeatureButton>

@@ -5,6 +5,8 @@ import { Footer } from '../components/Footer';
 import { AddBudgetModal } from '../components/dashboard/modals/AddBudgetModal';
 import { DeleteConfirmModal } from '../components/dashboard/DeleteConfirmModal';
 import { PieChart as PieChartComponent } from '../components/dashboard/PieChart';
+import { FilterDropdown, FilterOptions } from '../components/FilterDropdown';
+import { ExportButton } from '../components/ExportButton';
 import { PremiumFeatureButton } from '../components/PremiumFeatureButton';
 import { Toast } from '../components/Toast';
 import { useSubscription } from '../hooks/useSubscription';
@@ -15,6 +17,7 @@ export const Budgets: React.FC = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [budgets, setBudgets] = useState<any[]>([]);
+  const [filteredBudgets, setFilteredBudgets] = useState<any[]>([]);
   const [expenses, setExpenses] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -28,7 +31,9 @@ export const Budgets: React.FC = () => {
       budget_limit: 500,
       spent: 350,
       progress: 70,
-      color: 'bg-blue-500'
+      color: 'bg-blue-500',
+      start_date: '2025-01-01',
+      created_at: '2025-01-01T00:00:00Z'
     },
     {
       id: 2,
@@ -36,7 +41,9 @@ export const Budgets: React.FC = () => {
       budget_limit: 300,
       spent: 200,
       progress: 67,
-      color: 'bg-purple-500'
+      color: 'bg-purple-500',
+      start_date: '2025-01-01',
+      created_at: '2025-01-02T00:00:00Z'
     },
     {
       id: 3,
@@ -44,7 +51,9 @@ export const Budgets: React.FC = () => {
       budget_limit: 800,
       spent: 450,
       progress: 56,
-      color: 'bg-green-500'
+      color: 'bg-green-500',
+      start_date: '2025-01-01',
+      created_at: '2025-01-03T00:00:00Z'
     }
   ];
 
@@ -52,6 +61,7 @@ export const Budgets: React.FC = () => {
     const loadBudgets = async () => {
       if (isDemoUser) {
         setBudgets(mockBudgetData);
+        setFilteredBudgets(mockBudgetData);
         setLoading(false);
         return;
       }
@@ -66,6 +76,7 @@ export const Budgets: React.FC = () => {
 
           if (!budgetResult.error && budgetResult.data) {
             setBudgets(budgetResult.data);
+            setFilteredBudgets(budgetResult.data);
           }
 
           if (!expenseResult.error && expenseResult.data) {
@@ -97,6 +108,67 @@ export const Budgets: React.FC = () => {
       .reduce((sum, expense) => sum + Number(expense.amount), 0);
   };
 
+  const handleFilterChange = (filters: FilterOptions) => {
+    let filtered = [...budgets];
+
+    // Filter by category
+    if (filters.category) {
+      filtered = filtered.filter(budget => budget.category === filters.category);
+    }
+
+    // Filter by date range
+    if (filters.dateRange && filters.dateRange !== 'All') {
+      const now = new Date();
+      let startDate = new Date();
+
+      switch (filters.dateRange) {
+        case 'Last 7 Days':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case 'Last 30 Days':
+          startDate.setDate(now.getDate() - 30);
+          break;
+        case 'Last 90 Days':
+          startDate.setDate(now.getDate() - 90);
+          break;
+        case 'This Year':
+          startDate = new Date(now.getFullYear(), 0, 1);
+          break;
+      }
+
+      filtered = filtered.filter(budget => new Date(budget.start_date) >= startDate);
+    }
+
+    // Sort
+    if (filters.sortBy) {
+      filtered.sort((a, b) => {
+        let aValue, bValue;
+        
+        switch (filters.sortBy) {
+          case 'amount':
+            aValue = Number(a.budget_limit);
+            bValue = Number(b.budget_limit);
+            break;
+          case 'category':
+            aValue = a.category.toLowerCase();
+            bValue = b.category.toLowerCase();
+            break;
+          default:
+            aValue = new Date(a.start_date).getTime();
+            bValue = new Date(b.start_date).getTime();
+        }
+
+        if (filters.sortOrder === 'asc') {
+          return aValue > bValue ? 1 : -1;
+        } else {
+          return aValue < bValue ? 1 : -1;
+        }
+      });
+    }
+
+    setFilteredBudgets(filtered);
+  };
+
   const handleBudgetSuccess = () => {
     setToast({ message: 'Budget created successfully!', type: 'success' });
     // Reload budgets
@@ -107,6 +179,7 @@ export const Budgets: React.FC = () => {
           const { data, error } = await getBudgets(user.id);
           if (!error && data) {
             setBudgets(data);
+            setFilteredBudgets(data);
           }
         }
       } catch (error) {
@@ -127,6 +200,7 @@ export const Budgets: React.FC = () => {
       } else {
         setToast({ message: 'Budget deleted successfully!', type: 'success' });
         setBudgets(prev => prev.filter(item => item.id !== selectedItem.id));
+        setFilteredBudgets(prev => prev.filter(item => item.id !== selectedItem.id));
         setShowDeleteModal(false);
         setSelectedItem(null);
       }
@@ -138,12 +212,12 @@ export const Budgets: React.FC = () => {
   };
 
   const handleExport = () => {
-    if (budgets.length === 0) {
+    if (filteredBudgets.length === 0) {
       setToast({ message: 'No data to export', type: 'error' });
       return;
     }
 
-    const exportData = budgets.map(budget => {
+    const exportData = filteredBudgets.map(budget => {
       const spent = calculateSpent(budget.category);
       const progress = Math.round((spent / Number(budget.budget_limit)) * 100);
       
@@ -174,7 +248,7 @@ export const Budgets: React.FC = () => {
       '#06B6D4', // cyan
     ];
 
-    return budgets.map((budget, index) => {
+    return filteredBudgets.map((budget, index) => {
       const spent = calculateSpent(budget.category);
       return {
         label: budget.category,
@@ -182,7 +256,9 @@ export const Budgets: React.FC = () => {
         color: colors[index % colors.length]
       };
     });
-  }, [budgets]);
+  }, [filteredBudgets]);
+
+  const categories = [...new Set(budgets.map(budget => budget.category))];
 
   if (loading) {
     return (
@@ -212,7 +288,7 @@ export const Budgets: React.FC = () => {
           </div>
 
           {/* Charts Section */}
-          {budgets.length > 0 && (
+          {filteredBudgets.length > 0 && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
               {/* Budget Distribution Pie Chart */}
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
@@ -240,7 +316,7 @@ export const Budgets: React.FC = () => {
                   </h3>
                 </div>
                 <div className="space-y-4">
-                  {budgets.map((budget, index) => {
+                  {filteredBudgets.map((budget, index) => {
                     const spent = calculateSpent(budget.category);
                     const progress = Math.round((spent / Number(budget.budget_limit)) * 100);
                     
@@ -281,49 +357,62 @@ export const Budgets: React.FC = () => {
           )}
 
           {/* Action Bar */}
-          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
             <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
               <PremiumFeatureButton
                 canAccess={canAccessPremiumFeatures}
                 isDemoUser={isDemoUser}
                 onClick={() => setShowModal(true)}
-                className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2"
+                className="bg-gradient-to-r from-blue-500 to-blue-600 text-white px-6 py-3 rounded-xl font-medium hover:scale-105 transition-all duration-200 shadow-sm hover:shadow-md flex items-center gap-2"
               >
                 <Plus className="w-5 h-5" />
                 Create Budget
               </PremiumFeatureButton>
 
-              <button 
-                onClick={handleExport}
-                disabled={budgets.length === 0}
-                className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 px-4 py-2 rounded-lg font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Download className="w-4 h-4" />
-                Export CSV
-              </button>
+              <div className="flex gap-3">
+                <FilterDropdown
+                  onFilterChange={handleFilterChange}
+                  categories={categories}
+                  showAmountFilter={false}
+                  showCategoryFilter={true}
+                  showDateFilter={true}
+                />
+                
+                <ExportButton
+                  onExportCSV={handleExport}
+                  canAccess={canAccessPremiumFeatures}
+                  isDemoUser={isDemoUser}
+                  disabled={filteredBudgets.length === 0}
+                />
+              </div>
             </div>
           </div>
 
           {/* Budget Cards */}
-          {budgets.length === 0 ? (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+          {filteredBudgets.length === 0 ? (
+            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
               <Target className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-500 dark:text-gray-400 mb-2">No budgets created yet</p>
+              <p className="text-gray-500 dark:text-gray-400 mb-2">
+                {budgets.length === 0 ? 'No budgets created yet' : 'No budgets match your filters'}
+              </p>
               <p className="text-sm text-gray-400 dark:text-gray-500">
-                Create your first budget to start tracking your spending
+                {budgets.length === 0 
+                  ? 'Create your first budget to start tracking your spending'
+                  : 'Try adjusting your filter criteria'
+                }
               </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {budgets.map((budget) => {
+              {filteredBudgets.map((budget) => {
                 const spent = calculateSpent(budget.category);
                 const progress = Math.round((spent / Number(budget.budget_limit)) * 100);
                 
                 return (
-                  <div key={budget.id} className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                  <div key={budget.id} className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 hover:shadow-md transition-shadow">
                     <div className="flex items-center justify-between mb-4">
                       <div className="flex items-center gap-3">
-                        <div className={`p-2 ${budget.color || 'bg-gradient-to-br from-blue-500 to-blue-600'} rounded-lg`}>
+                        <div className={`p-2 ${budget.color || 'bg-gradient-to-br from-blue-500 to-blue-600'} rounded-xl`}>
                           <Target className="w-5 h-5 text-white" />
                         </div>
                         <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
@@ -337,7 +426,7 @@ export const Budgets: React.FC = () => {
                           setSelectedItem(budget);
                           setShowDeleteModal(true);
                         }}
-                        className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+                        className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors p-2 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20"
                       >
                         <Trash2 className="w-4 h-4" />
                       </PremiumFeatureButton>
@@ -399,7 +488,7 @@ export const Budgets: React.FC = () => {
           )}
 
           {isDemoUser && (
-            <div className="mt-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+            <div className="mt-8 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
               <p className="text-sm text-blue-700 dark:text-blue-300">
                 <strong>Demo Mode:</strong> Sign up to create and manage your own budgets with real data.
               </p>
