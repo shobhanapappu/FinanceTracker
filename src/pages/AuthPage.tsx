@@ -128,7 +128,7 @@ export const AuthPage: React.FC = () => {
               <Mail className="w-6 h-6 text-white" />
             </div>
             <span className="text-2xl font-bold text-gray-900 dark:text-white">
-              FinanceTracker
+              GrowEasy Tracker
             </span>
           </div>
           <ThemeToggle />
@@ -139,7 +139,7 @@ export const AuthPage: React.FC = () => {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
             <h1 className="text-4xl font-semibold text-gray-900 dark:text-white mb-4">
-              {isLogin ? 'Welcome Back' : 'Join FinanceTracker'}
+              {isLogin ? 'Welcome Back' : 'Join GrowEasy Tracker'}
             </h1>
             <p className="text-xl text-gray-600 dark:text-gray-300">
               {isLogin 
@@ -495,7 +495,7 @@ export const AuthPage: React.FC = () => {
 
               {!isLogin && (
                 <div className="text-center text-gray-500 dark:text-gray-400">
-                  <p>New to FinanceTracker? Use the sign-up form ←</p>
+                  <p>New to GrowEasy Tracker? Use the sign-up form ←</p>
                 </div>
               )}
             </div>

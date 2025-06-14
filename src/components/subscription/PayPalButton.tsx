@@ -44,7 +44,7 @@ export const PayPalButton: React.FC<PayPalButtonProps> = ({ onSuccess, onError }
       const script = document.createElement('script');
       script.src = 'https://www.paypal.com/sdk/js?client-id=AYgjOrPLmtmsNTIOlRU_LOlj4YdXut9oxfx1PjS0bqzrOkpLtcvFelaNOF-g6SfwSGweGLN0ausBGwym&vault=true&intent=subscription&enable-funding=paypal&disable-funding=credit,card&currency=USD';
       script.async = true;
-      script.setAttribute('data-partner-attribution-id', 'FinanceTracker_SP');
+      script.setAttribute('data-partner-attribution-id', 'GrowEasyTracker_SP');
       
       script.onload = () => {
         if (isMounted) {
@@ -97,7 +97,7 @@ export const PayPalButton: React.FC<PayPalButtonProps> = ({ onSuccess, onError }
             return actions.subscription.create({
               'plan_id': 'P-2HF61636JC234640BNBGEIUI',
               'application_context': {
-                'brand_name': 'FinanceTracker',
+                'brand_name': 'GrowEasy Tracker',
                 'locale': 'en-US',
                 'shipping_preference': 'NO_SHIPPING',
                 'user_action': 'SUBSCRIBE_NOW',

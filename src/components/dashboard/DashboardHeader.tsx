@@ -68,7 +68,7 @@ export const DashboardHeader: React.FC = () => {
               <TrendingUp className="w-6 h-6 text-white" />
             </div>
             <span className="text-2xl font-bold text-gray-900 dark:text-white">
-              FinanceTracker
+              GrowEasy Tracker
             </span>
           </div>
 

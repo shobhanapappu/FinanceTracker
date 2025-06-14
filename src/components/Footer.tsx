@@ -8,7 +8,7 @@ export const Footer: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div className="col-span-1 md:col-span-2">
             <h3 className="text-2xl font-bold mb-4 bg-gradient-to-r from-primary-400 to-teal-400 bg-clip-text text-transparent">
-              FinanceTracker
+              GrowEasy Tracker
             </h3>
             <p className="text-gray-400 mb-6 leading-relaxed">
               Simplify your finances with smart tracking tools designed for freelancers and small businesses.
@@ -33,7 +33,7 @@ export const Footer: React.FC = () => {
                 <Linkedin className="w-5 h-5" />
               </a>
               <a
-                href="mailto:contact@financetracker.com"
+                href="mailto:contact@groweasytracker.com"
                 className="p-3 bg-dark-800 rounded-lg hover:bg-gradient-to-r hover:from-primary-500 hover:to-teal-500 transition-all duration-200 hover:scale-110"
                 aria-label="Send us an email"
               >
@@ -87,7 +87,7 @@ export const Footer: React.FC = () => {
         
         <div className="border-t border-teal-800/30 mt-12 pt-8 text-center">
           <p className="text-gray-400">
-            © 2025 FinanceTracker. All rights reserved.
+            © 2025 GrowEasy Tracker. All rights reserved.
           </p>
         </div>
       </div>

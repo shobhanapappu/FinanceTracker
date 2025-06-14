@@ -11,7 +11,7 @@ export const Header: React.FC = () => {
             <TrendingUp className="w-6 h-6 text-white" />
           </div>
           <span className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">
-            FinanceTracker
+            GrowEasy Tracker
           </span>
         </div>
         

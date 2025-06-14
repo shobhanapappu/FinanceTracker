@@ -143,7 +143,7 @@ export const Subscription: React.FC = () => {
               Upgrade to Premium
             </h1>
             <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed">
-              Unlock powerful features to take control of your finances and achieve your goals faster
+              Unlock powerful features to take control of your finances and achieve your goals faster with GrowEasy Tracker
             </p>
           </div>
 
